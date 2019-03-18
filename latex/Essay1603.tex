@@ -1,0 +1,191 @@
+\documentclass[a4paper,11pt]{article}
+
+\title{Statistical Inference of Discretely Observed Compound Poisson Processes and Related Jump Processes}
+\author{Suraj Shah}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{bbm}
+
+\usepackage{amsthm}
+\usepackage{cleveref}
+
+\theoremstyle{theorem}
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}{Lemma}[section]
+\crefname{lem}{Lemma}{Lemmas}
+\newtheorem{prop}{Proposition}[section]
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}[section]
+
+\providecommand{\E}{\mathbb{E}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\pagebreak
+
+\tableofcontents
+
+\pagebreak
+
+\section{Introduction}
+
+\begin{defn}[Counting Process]
+A \textit{counting process} is a stochastic process $\{ N(t) : t \geq 0 \}$ with values that are non-negative, integer and non-decreasing i.e. $\forall s,t \geq 0 : s \leq t$ :
+
+\begin{enumerate}
+
+\item $N(t) \geq 0$,
+\item $N(t)\in \mathbb{N}$,
+\item $N(s) \leq N(t)$.
+
+\end{enumerate}
+
+\end{defn}
+
+\begin{defn}[Poisson Process]
+A \textit{Poisson process with intensity $\lambda$} is a counting process $\{ N(t) : t \geq 0 \}$ with the following properties:
+
+\begin{enumerate}
+
+\item $N(0) = 0$,
+\item It has independent increments i.e. $\forall n \in \mathbb{N}: 0 \leq t_{1} \leq t_{2} \leq \dotsb \leq t_{n}$, $N(t_{n}) - N(t_{n-1}), N(t_{n-1}) - N(t_{n-2}), \dotsc , N(t_{1})$ are independent,
+\item The number of occurrences in any interval of length t is a Poisson random variable with parameter $\lambda t$ i.e. $ \forall s,t : s \leq t$, $N(t) - N(s) \sim {\rm Poisson}(\lambda (t-s))$.
+
+\end{enumerate}
+
+\end{defn}
+
+\begin{lem}
+A Poisson process with intensity $\lambda$ has exponentially distributed inter-arrival times with rate $\lambda$.  
+\end{lem}
+
+\begin{defn}[Compound Poisson Process] Let ${N(t) : t \geq 0}$ be a d-dimensional Poisson process with intensity $\lambda$. 
+
+Let $Y_{1}, Y_{2}, \dotsc$ be a sequence of i.i.d random variables taking values in $\mathbb{R}^{d}$ with common distribution $F$.
+
+Also assume that the $Y_{i}$'s are independent of the Poisson process $\{N(t) : t \geq 0 \}$.
+
+Then, a \textit{Compound Poisson process (CPP)} is a stochastic process $\{ X(t) : t \geq 0 \}$ such that
+\[
+X(t) = \sum_{i=1}^{N(t)} Y_{i}
+\]
+where, by convention, we take $X(t) = 0$ if $N(t) = 0$.
+
+\end{defn}
+
+Suppose we take discrete observations of a CPP i.e. we consider $X(\Delta), X(2\Delta), \dotsc$ where ${X(t) : t \geq 0}$ is a CPP. We want to estimate $F$. Note that the jump size $X(n\Delta) - X((n-1)\Delta)$ is equivalent in distribution to a Poission random sum of intensity $\Delta$:
+\begin{align*}
+X(n\Delta) - X((n-1)\Delta) &= \sum_{i=1}^{N(n\Delta)}{Y_{i}} - \sum_{i=1}^{N((n-1)\Delta)}{Y_{i}} \\
+= \sum_{i=1}^{N(n\Delta) - N((n-1)\Delta)}{Y_{i}} \\
+=^{d} \sum_{i=1}^{N}{Y_{i}}
+\end{align*}
+where $N \sim {\rm Poisson}{(\Delta)}$
+
+\section{Spectral Approach}
+
+Now we have formulated the problem, we visit some methods for estimating the unknown density $f$. Since adding a Poisson number of $Y$'s is referred to as compounding, much of the literature refers to the problem of recovering density $f$ of $Y$'s from observations of $X$ as decompounding.
+
+The approach of decompounding was famously proposed by Buchmann and Gr\"{u}bel to estimate the density $f$ for discrete and continuous cases of the distribution $F$ of the $Y$'s.
+
+Van Es built on this idea for fixed sampling rate $\Delta = 1$ using the L\'{e}vy - Khintchine formula. We explain the idea behind this method and show its strength through various examples.
+
+\subsection{Van Es}
+
+\subsubsection{Construction of Density Estimator via suitable inversion of characteristic functions}
+
+We first note the following property:
+
+\begin{prop}
+For Poisson random sum $X$, the characteristic function of $X$, denoted by $\phi_{X}$, is given by $\phi_X(t) = \mathbb{E}e^{itX} = e^{-\lambda + \lambda \phi_{f}(t)}$ 
+\end{prop}
+
+\begin{proof}
+\begin{align*}
+\phi_{X}(t) &= \E e^{itX} \\
+          &= \E \left[ \exp\left(it\sum_{i=1}^{N(\lambda)}{Y_{i}}\right)\right] \\
+          &= \E \left[ \prod_{i=1}^{N(\lambda)}{\exp(itY_{i})} \right] \\
+          &= \E \left[ \E \left[ \prod_{i=1}^{N(\lambda)}{\exp(itY_{i})} \middle| N(\lambda) \right] \right] \\
+          &= \E \left[ \prod_{i=1}^{N(\lambda)}{\E \left[ \exp(itY_{1}) \;\middle|\; N(\lambda) \right]} \right] & \text{(by i.i.d assumption of the } Y_{i}\text{'s)}  \\
+          &= \E \left[ \prod_{i=1}^{N(\lambda)}{\phi_{f}(t)} \right] & \text{(}Y_{1} \text{ and } N(\lambda) \text{ are independent)} \\
+          &= \E \left[ \exp(N(\lambda) \ln\phi_{f}(t)) \right] \\
+          &= \exp(\lambda(e^{\ln\phi_{f}(t)} - 1)) & \text{(MGF of a Poisson random variable)} \\
+          &= e^{-\lambda + \lambda \phi_{f}(t)}
+\end{align*}
+\end{proof}
+
+We can rewrite $\phi_{X}(t)$ as:
+
+\begin{align}
+\phi_{X}(t) &= e^{-\lambda}(e^{\lambda \phi_{f}(t)} - 1 + 1) \nonumber \\
+		    &= e^{-\lambda} + e^{-\lambda}(e^{\lambda \phi_{f}(t)} - 1) \nonumber \\
+		    &= e^{-\lambda} + e^{-\lambda}\frac{e^{\lambda} - 1}{e^{\lambda} - 1}(e^{\lambda \phi_{f}(t)} - 1) \nonumber \\
+		    &= e^{-\lambda} + \frac{1 - e^{-\lambda}}{e^{\lambda} - 1}(e^{\lambda \phi_{f}(t)} - 1) \label{eq:charX}
+\end{align}
+
+Let $g$ be the density of $X \;|\; N(\lambda) > 0$. 
+
+Let $\phi_{g}(t) = \E \left[ e^{itX} \;\middle|\; N(\lambda) > 0 \right] = \frac{\E \left[ e^{itX} \mathbbm{1}(N(\lambda) > 0) \right]}{\mathbb{P}(N(\lambda) > 0)}$.
+
+Then
+\begin{align*}
+\phi_{X}(t) &= \E \left[ e^{itX} \mathbbm{1}(N(\lambda) = 0) \right] + \E \left[ e^{itX} \mathbbm{1}(N(\lambda) > 0) \right] \\
+            &= \mathbb{P}(N(\lambda) = 0) + \mathbb{P}(N(\lambda) > 0) \phi_{g}(t) \\
+            &= e^{-\lambda} + (1 - e^{-\lambda})\phi_{g}(t)
+\end{align*}
+
+Therefore, using (\ref{eq:charX}), we get that
+\begin{equation}
+\phi_{g}(t) = \frac{1}{e^{\lambda} - 1}(e^{\lambda \phi_{f}(t)} - 1) \label{eq:charg}
+\end{equation}
+
+Thus, we can see from this that if we were to obtain an estimator for $\phi_{g}(t)$, then by suitable inversion of the formula in (\ref{eq:charg}), we would obtain an estimator for $\phi_{f}(t)$.
+
+In order to rewrite (\ref{eq:charg}) in terms of $\phi_{f}(t)$, we must be able to invert the complex exponential function since $\phi_{f}(t)$ takes complex values. However, such function is not invertible since it is not bijective: in particular it is not injective as $e^{w + 2 \pi i} = e^{w} \ \forall w \in \mathbb{C}$.
+
+Therefore, we use the following lemmas concerning the distinguished logarithm:
+
+\begin{lem} \label{lma1}
+If $h_{1} : \mathbb{R} \to \mathbb{C}$ and $h_{2} : \mathbb{R} \to \mathbb{C}$ are continuous functions such that $h_{1}(0) = h_{2}(0) = 0$ and $e^{h_{1}} = e^{h_{2}}$, then $h_{1} = h_{2}$. 
+\end{lem}
+
+\begin{proof}
+See Appendix.
+\end{proof}
+
+\begin{lem}
+If $\phi : \mathbb{R} \to \mathbb{C}$ is a continuous function such that $\phi(0) = 1$ and $\phi_{g}(t) \neq 0 \ \forall t \in \mathbb{R}$ then there exists a unique continuous function $h : \mathbb{R} \to \mathbb{C}$ with $h(0) = 0$ and $\phi(t) = e^{h(t)}$ for $t \in \mathbb{R}$. 
+\end{lem}
+
+\begin{proof}
+See Appendix.
+\end{proof}
+
+Therefore, for such a function $\phi$ as described in the Lemma, we say that the unique function $h$ is the distinguished logarithm and we denote $h(t) = \text{Log}(\phi(t))$. Note also that for $\phi$ and $\psi$ satisfying the assumptions of the Lemma, we have $\text{Log}(\phi(t)\psi(t)) = \text{Log}(\phi(t)) + \text{Log}(\psi(t))$ as expected.  
+
+Therefore, noting that $\phi(t) = e^{\lambda(\phi_{f}(t) - 1)}$ is a continuous function satisfying $\phi(0) = 1$ and $\phi(t) \neq 0 \ \forall t \in R$, we get that
+\begin{align*}
+\lambda(\phi_{f}(t) - 1) &= \text{Log}\left(e^{\lambda (\phi_{f}(t) - 1)}\right)& \text{(\cref{lma1})} \\
+                         &= \text{Log}\left(e^{-\lambda}\left[(e^{\lambda} - 1)\phi_{g}(t) + 1\right] \right) \\
+                         &= -\lambda + \text{Log}\left((e^{\lambda} - 1)\phi_{g}(t) + 1\right)
+\end{align*}
+
+Therefore,
+\begin{equation} \label{eq:charf}
+\phi_{f}(t) = \frac{1}{\lambda}\text{Log}\left((e^{\lambda} - 1)\phi_{g}(t) + 1\right)
+\end{equation} 
+
+
+
+
+
+
+\end{document}
