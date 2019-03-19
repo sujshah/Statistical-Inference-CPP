@@ -43,6 +43,9 @@ def non_zero_jumps(n, delta, rate, density):
         
     return np.array([obs[i] - obs[i-1] for i in range(1, n) 
     if obs[i] != obs[i-1]])
+
+def mixture_normals(size):
+    return (3/4)*np.random.normal(loc=0, scale=1, size=size) + (1/4)*np.random.normal(loc=3/2, scale=1/3, size=size)
     
     
 

@@ -4,11 +4,13 @@ Created on Mon Mar  4 16:36:26 2019
 
 @author: suraj
 """
-from cpp_sim import cpp_sim, non_zero_jumps
+from cpp_sim import cpp_sim, non_zero_jumps, mixture_normals
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
+
+plt.rcParams.update({'font.size': 22})
 
 times, values = cpp_sim(100, 0.3, np.random.normal)
 plt.step(times, values)
@@ -50,18 +52,15 @@ def compute_f1(v, lamb, Z):
 
 f1 = compute_f1(v, lamb, Z)
 x = -N*delta/2 + delta*(np.arange(N))
-plt.step(x, f1)
-plt.xlim(-15, 15)
-plt.show()
 
 def psi2(v, lamb, Z):
-    return np.log((np.exp(lamb) - 1)*characteristic_emp(Z, -t)*characteristic_kernel(bandwidth*t) + 1)
+    return np.log((np.exp(lamb) - 1)*characteristic_emp(Z, -v)*characteristic_kernel(bandwidth*v) + 1)
 
 def compute_f2(v, lamb, Z):
     ifft = np.fft.ifft(psi2(v, lamb, Z)*np.exp(-1j*v*N*delta/2)*eta)
     return N*ifft/(2*np.pi*lamb)
     
-f2 = compute_f1(v, lamb, Z)
+f2 = compute_f2(v, lamb, Z)
 plt.scatter(x, f1 + f2)
 plt.xlim(-4, 4)
 plt.ylim(0, 0.42)
@@ -69,7 +68,33 @@ plt.plot(x, mlab.normpdf(x, 0, 1))
 plt.show()
 
 
-def trapezoid(v):
-    
+n = 10000
+bandwidth = 0.1
+lamb = 0.3
 
-np.fft()
+Z = non_zero_jumps(n, 1, 0.3, mixture_normals)
+Z = Z[:1000]
+
+np.mean(mixture_normals(1000))
+
+eta = 0.01
+N = 16384
+delta = 2*np.pi/(N*eta)
+
+f1 = compute_f1(v, lamb, Z)
+f2 = compute_f2(v, lamb, Z)
+x = -N*delta/2 + delta*(np.arange(N))
+
+plt.scatter(x, f1 + f2)
+plt.xlim(-4, 4)
+plt.ylim(0, 0.5)
+plt.plot(x, (2/3)*mlab.normpdf(x, 0, 1) + (1/3)*mlab.normpdf(x, 3/2, 1/3))
+plt.show()
+
+plt.scatter(x, f1)
+plt.xlim(-4,4)
+plt.ylim(0, 0.5)
+plt.show()
+
+def trapezoid(v):
+    pass
