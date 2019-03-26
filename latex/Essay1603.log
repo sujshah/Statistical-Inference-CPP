@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (MiKTeX 2.9.6210 64-bit) (preloaded format=pdflatex 2017.2.10)  19 MAR 2019 16:05
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (MiKTeX 2.9.6210 64-bit) (preloaded format=pdflatex 2017.2.10)  24 MAR 2019 17:51
 entering extended mode
 **./Essay1603.tex
 (Essay1603.tex
@@ -154,18 +154,18 @@ Package amsthm Warning: Unknown theoremstyle `theorem' on input line 17.
 (Essay1603.aux)
 \openout1 = `Essay1603.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 31.
+LaTeX Font Info:    ... okay on input line 31.
  ("C:\Program Files\MiKTeX 2.9\tex\context\base\supp-pdf.mkii"
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count104
@@ -224,12 +224,12 @@ Package grfext Info: Graphics extension search list:
 G,.JBIG2,.JB2,.eps]
 (grfext)             \AppendGraphicsExtensions on input line 456.
 )
-LaTeX Font Info:    Try loading font information for U+msa on input line 32.
+LaTeX Font Info:    Try loading font information for U+msa on input line 33.
 
 ("C:\Program Files\MiKTeX 2.9\tex\latex\amsfonts\umsa.fd"
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 32.
+LaTeX Font Info:    Try loading font information for U+msb on input line 33.
 
 ("C:\Program Files\MiKTeX 2.9\tex\latex\amsfonts\umsb.fd"
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
@@ -240,34 +240,34 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 \openout3 = `Essay1603.toc'.
 
  [2]
-Overfull \hbox (40.6343pt too wide) in paragraph at lines 90--91
+Overfull \hbox (40.6343pt too wide) in paragraph at lines 91--92
 []\OT1/cmr/m/n/10.95 Suppose we take dis-crete ob-ser-va-tions of a CPP i.e. we
  con-sider $\OML/cmm/m/it/10.95 X\OT1/cmr/m/n/10.95 ()\OML/cmm/m/it/10.95 ; X\
 OT1/cmr/m/n/10.95 (2)\OML/cmm/m/it/10.95 ; [] $
  []
 
 [3]
-Overfull \hbox (8.09885pt too wide) in paragraph at lines 127--127
+Overfull \hbox (8.09885pt too wide) in paragraph at lines 128--128
 [] 
  []
 
 [4] [5]
-LaTeX Font Info:    Try loading font information for U+bbm on input line 158.
+LaTeX Font Info:    Try loading font information for U+bbm on input line 159.
  ("C:\Program Files\MiKTeX 2.9\tex\latex\bbm\ubbm.fd"
 File: ubbm.fd 1999/03/15 V 1.2 Font definition for bbm font - TH
 ) [6] [7]
-Overfull \hbox (9.59822pt too wide) in paragraph at lines 260--260
+Overfull \hbox (9.59822pt too wide) in paragraph at lines 261--261
 [] 
  []
 
 [8] [9] [10]
-Overfull \hbox (53.47359pt too wide) in paragraph at lines 358--359
+Overfull \hbox (53.47359pt too wide) in paragraph at lines 359--360
 []\OT1/cmr/m/n/10.95 Therefore, we take $\OML/cmm/m/it/10.95  \OT1/cmr/m/n/10
 .95 = []$ and we ap-ply FFT on the se-quence $[][]$
  []
 
 
-Overfull \hbox (14.42291pt too wide) in paragraph at lines 358--359
+Overfull \hbox (14.42291pt too wide) in paragraph at lines 359--360
 \OT1/cmr/m/n/10.95 to get val-ues for $[]$ and we ap-ply IFFT on the se-quence 
 $[][]$
  []
@@ -276,38 +276,79 @@ $[][]$
 File: ./plots/fft_standard_normal.png Graphic file (type png)
 
 <use ./plots/fft_standard_normal.png>
-Package pdftex.def Info: ./plots/fft_standard_normal.png used on input line 366
+Package pdftex.def Info: ./plots/fft_standard_normal.png used on input line 367
 .
 (pdftex.def)             Requested size: 325.20097pt x 193.92818pt.
  [11 <./plots/fft_standard_normal.png>]
-(Essay1603.aux) ) 
+LaTeX Font Info:    Try loading font information for U+euf on input line 396.
+
+("C:\Program Files\MiKTeX 2.9\tex\latex\amsfonts\ueuf.fd"
+File: ueuf.fd 2013/01/14 v3.01 Euler Fraktur
+) [12]
+Overfull \hbox (8.0162pt too wide) in paragraph at lines 423--424
+[]\OT1/cmr/m/n/10.95 Note that $\OML/cmm/m/it/10.95 \OT1/cmr/m/n/10.95 (\OML/c
+mm/m/it/10.95 X\OT1/cmr/m/n/10.95 ) = \OMS/cmsy/m/n/10.95 X$ \OT1/cmr/m/n/10.95
+ and we can write the pos-te-rior dis-tri-bu-tion $(\OML/cmm/m/it/10.95 B\OMS/
+cmsy/m/n/10.95 j\OML/cmm/m/it/10.95 X\OT1/cmr/m/n/10.95 ) =
+ []
+
+[13] [14] [15] [16] [17] [18] [19]
+Overfull \hbox (0.75919pt too wide) in paragraph at lines 705--706
+\OT1/cmr/m/n/10.95 den-sity $\OML/cmm/m/it/10.95 f$ \OT1/cmr/m/n/10.95 we know 
+that $\OML/cmm/m/it/10.95 []\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 t\OT1/cmr/
+m/n/10.95 ) \OMS/cmsy/m/n/10.95 ! \OT1/cmr/m/n/10.95 0[]\OML/cmm/m/it/10.95 t \
+OMS/cmsy/m/n/10.95 ! 1$ \OT1/cmr/m/n/10.95 (re-mem-ber for $\OML/cmm/m/it/10.95
+ N\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 ; []\OT1/cmr/m/n/10.95 )\OML/cmm/m/
+it/10.95 ; []\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 t\OT1/cmr/m/n/10.95 ) =
+ []
+
+[20]
+Overfull \hbox (105.08699pt too wide) in paragraph at lines 731--731
+[] 
+ []
+
+[21] [22] [23] [24] [25]
+Overfull \hbox (50.3807pt too wide) in paragraph at lines 938--938
+[] 
+ []
+
+
+Overfull \hbox (17.58159pt too wide) in paragraph at lines 957--957
+[] 
+ []
+
+[26] [27] (Essay1603.aux) ) 
 Here is how much of TeX's memory you used:
- 4363 strings out of 493333
- 74090 string characters out of 3139194
+ 4401 strings out of 493333
+ 74654 string characters out of 3139194
  135889 words of memory out of 3000000
- 7845 multiletter control sequences out of 15000+200000
- 12402 words of font info for 48 fonts, out of 3000000 for 9000
+ 7876 multiletter control sequences out of 15000+200000
+ 13811 words of font info for 53 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 39i,13n,26p,489b,224s stack positions out of 5000i,500n,10000p,200000b,50000s
- <C:\Users\suraj\AppData\Local\MiKTeX\2.9\fonts\pk\ljfour\publ
-ic\bbm\dpi657\bbm10.pk> <C:\Users\suraj\AppData\Local\MiKTeX\2.9\fonts\pk\ljfou
-r\public\bbm\dpi600\bbm8.pk><C:/Program Files/MiKTeX 2.9/fonts/type1/public/ams
-fonts/cm/cmbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm
-/cmbx12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.
-pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/
-Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi6.pfb><C:/Program F
-iles/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Program Files/MiKT
-eX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/fo
-nts/type1/public/amsfonts/cm/cmr12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1
-/public/amsfonts/cm/cmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/a
-msfonts/cm/cmr6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm
-/cmr8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pf
-b><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Pro
-gram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti10.pfb><C:/Program Fil
-es/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on Essay1603.pdf (11 pages, 319524 bytes).
+ 39i,13n,26p,529b,224s stack positions out of 5000i,500n,10000p,200000b,50000s
+ <C:\Users\suraj\AppData\Local\MiKTeX\2.9\fonts\pk\l
+jfour\public\bbm\dpi657\bbm10.pk> <C:\Users\suraj\AppData\Local\MiKTeX\2.9\font
+s\pk\ljfour\public\bbm\dpi600\bbm8.pk><C:/Program Files/MiKTeX 2.9/fonts/type1/
+public/amsfonts/cm/cmbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/a
+msfonts/cm/cmbx12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/
+cm/cmex10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cmextra/
+cmex8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pf
+b><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi6.pfb><C:/Pro
+gram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Program File
+s/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 
+2.9/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Program Files/MiKTeX 2.9/fonts
+/type1/public/amsfonts/cm/cmr17.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pu
+blic/amsfonts/cm/cmr6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfo
+nts/cm/cmr8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cms
+y10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy6.pfb><
+C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Progra
+m Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti10.pfb><C:/Program Files/
+MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti8.pfb><C:/Program Files/MiKTeX 2.
+9/fonts/type1/public/amsfonts/euler/eufm10.pfb><C:/Program Files/MiKTeX 2.9/fon
+ts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on Essay1603.pdf (27 pages, 432147 bytes).
 PDF statistics:
- 111 PDF objects out of 1000 (max. 8388607)
+ 178 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  6 words of extra memory for PDF output out of 10000 (max. 10000000)
 

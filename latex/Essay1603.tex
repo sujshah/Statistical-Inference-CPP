@@ -24,6 +24,7 @@
 
 \theoremstyle{definition}
 \newtheorem{defn}{Definition}[section]
+\newtheorem*{eg}{Example}
 
 \providecommand{\E}{\mathbb{E}}
 
@@ -109,7 +110,7 @@ Van Es built on this idea for fixed sampling rate $\Delta = 1$ using the L\'{e}v
 
 We first note the following property:
 
-\begin{prop}
+\begin{prop} \label{characteristicPS}
 For Poisson random sum $X$, the characteristic function of $X$, denoted by $\phi_{X}$, is given by $\phi_X(t) = \mathbb{E}e^{itX} = e^{-\lambda + \lambda \phi_{f}(t)}$ 
 \end{prop}
 
@@ -373,4 +374,587 @@ The second example we consider is the case of $f$ being a mixture of two normal 
 f(\cdot) = \rho_{1}\psi(\cdot;\mu_{1},\sigma_{1}^{2}) + \rho_{2}\psi(\cdot;\mu_{2}, \sigma_{2}^{2}) 
 \] 
 where $\rho_{1} = \frac{2}{3}, \rho_{2} = \frac{1}{3}, \mu_{1} = 0, \mu_{2} = 3, \sigma_{1}^{2} = 1, \sigma_{2}^{2} = \frac{1}{9}$. We use a bandwidth of 0.1.
+
+\section{Bayesian Approach}
+
+We now consider the non-parametric Bayesian approach to estimating 'true' parameter values $f_{0}$ as well as $\lambda_{0}$ from discrete evenly-spaced observations of the CPP.
+
+The advantages of using a non-parametric Bayesian approach are two-fold:
+\begin{enumerate}
+\item We obtain a distribution over all probability densities rather than just a point estimate as in the spectral approach,
+\item We obtain automatic uncertainty quantification through the posterior credible sets
+\end{enumerate}
+
+\subsection{Bayesian Nonparametrics}
+
+In the Bayesian framework, the data $X$ follows a distribution determined by a parameter $\theta$, which is itself considered to be generated from a prior distribution $\Pi$. The corresponding posterior distribution is the conditional distribution of $\theta$, given $X$. This framework is identical in parametric and nonparametric Bayesian statistics, the only difference being the dimension of the parameter $\theta$.
+
+Because, in the nonparametric case, the prior distribution is a distribution over an infinite-dimensional space, we must carefully construct the setup in order to apply Bayes Theorem.
+
+Let $(\mathcal{F}, \mathcal{B})$ be a measurable space, where $\mathcal{F}$, in our following discussion, will be a set of functions denoting the parameter space. Then the prior distribution $\Pi$ is a probability measure on $(\mathcal{F}, \mathcal{B})$.
+
+Let $(\mathfrak{X}, \mathcal{X})$ denote our sample space. Suppose we have data $X$ - this data is a random variable from some probability space $(\Omega, \mathcal{A}, \mathbb{P})$ so $X: \Omega \to \mathfrak{X}$. Our model/likelihood $P_{\theta}$ of $X$ given $\theta$ is a Markov kernel with source $(\mathcal{F}, \mathcal{B})$ and target $(\mathfrak{X}, \mathcal{X})$. 
+
+\begin{defn}
+Let $(X, \mathcal{A}), (Y, \mathcal{B})$ be measurable spaces. A Markov kernel with source $(X, \mathcal{A})$ and target $(Y, \mathcal{B})$ is a map $\kappa : X \times \mathcal{B} \to [0, 1]$ with the following properties:
+\begin{enumerate}
+\item The map $x \mapsto \kappa(x, B)$ is $(X, \mathcal{A})$-measurable for every $B \in \mathcal{B}$
+\item The map $B \mapsto \kappa(x, B)$ is a probability measure on $(Y, \mathcal{B})$ for every $x \in X$.
+\end{enumerate} 
+\end{defn}
+
+Therefore, $A \mapsto P_{\theta}(A)$ is a probability measure on $(\mathfrak{X}, \mathcal{X})$.
+
+For pair $(X, \theta)$, we have a well-defined joint distribution on the product space $(\mathcal{F} \times \mathfrak{X}, \mathcal{B} \otimes \mathcal{X})$ given by
+\[
+P(B, A) = P(\theta \in B, X \in A) = \int_{B}{P_{\theta}(A)d\Pi(\theta)}
+\]   
+and we note that the integral is well-defined since the map $\theta \mapsto P_{\theta}(A)$ is $(\mathcal{F}, \mathcal{B})$-measurable.
+
+From this we get the marginal distribution of $X$ given by
+\[
+P(X \in A) = \int{P_{\theta}(A)d\Pi(\theta)}
+\]
+i.e. a probability measure $P_{X}$ on $(\mathfrak{X}, \mathcal{X})$
+\[
+P(\theta \in B | X) = \E_{P} \left[ \mathbbm{1}(\theta \in B) \;|\; \sigma(X) \right] \qquad \text{a.s.}
+\]
+
+Note that $\sigma(X) = \mathcal{X}$ and we can write the posterior distribution $\Pi(B|X) = P(\theta \in B | X)$. Under certain conditions, there exists a regular version of the conditional distribution i.e. a Markov kernel $\mu$ from source $(\mathfrak{X}, \mathcal{X})$ and target $(\mathcal{F}, \mathcal{B})$ such that the map $B \mapsto \mu(x, B)$ is a probability measure on $(\mathcal{F}, \mathcal{B})$ and equals $\Pi(B|X)$ almost surely.   
+
+A sufficient condition for this is when $\mathcal{F}$ is a Polish space equipped with Borel $\sigma$-algebra $\mathcal{B}$.
+
+
+ 
+\subsection{Gugushvili}
+
+We consider the problem of estimating density $f_{0}$ from the non-parametric class $\mathcal{F}$ of location-scale mixtures of normal densities.
+
+\subsubsection{Mixtures} \label{mixtures}
+
+A powerful technique, especially for computation, is to construct a prior on probability densities is through mixtures.
+
+For given probability density functions $\{ \psi_{\theta} : \theta \in \Theta\}$ (such that the map $x \mapsto \psi_{\theta}(x) = \psi(\theta, x)$ is measurable in both arguments) and a probability distribution $F$ on the parameter space $(\Theta, \mathcal{T})$, let
+\[
+p_{F}(x) = \int{f(\theta, x) dF(x)}
+\]
+
+Then a prior on $F$ induces a prior on densities. The function $\psi$ is referred to as the kernel function and the measure $F$ is called the mixing distribution. 
+
+In our case we use a location-scale mixture of normal densities. Therefore, our kernel is of the form $x \mapsto \frac{1}{\sigma}\psi\left(\frac{x- \mu}{\sigma}\right)$ where $\psi$ denotes the probability density function of a standard normal and $\theta = (\mu, \sigma)$.
+
+Such a family is rich since by Fejer's theorem,
+
+\[
+\int{\frac{1}{\sigma}\psi\left(\frac{x- \mu}{\sigma}\right) f(\mu)d\mu} \to f(\cdot) \text{ as } \sigma \to 0 \text{ in } L^1
+\]
+
+Thus, a prior on densities may be induced by putting a prior on the mixing distribution $F$ and a prior on $\sigma$ restricted to positive values.
+
+The mixing distribution $F$ may be given a Dirichlet process prior since it leads to efficient computational algorithms as well as rich convergence properties. Thus, for our discussion, such a prior is particularly attractive. 
+
+\subsubsection{Priors on Spaces of Probability Measures}
+
+As we have seen in the previous section, placing a prior on the mixing distribution $F$ induces a prior on the space of probability densities. This construction comes with some technical complications.
+
+We provide a rigorous discussion of its construction nad then introduce methods of constructing priors, in particular stick breaking and the P\'{o}lya urn scheme.
+
+Let $(\mathfrak{X}, \mathcal{X})$ be a Polish space and consider priors on the collection $\mathfrak{M}$ of all probability measures on $(\mathfrak{X}, \mathcal{X})$. A prior $\Pi$ on $\mathfrak{M}$ can be viewed as the distribution of a \textit{random measure} $P$.
+
+\begin{defn}
+A random measure, in this case, can be thought of as a random element from some probability space $(\Omega, \mathcal{F}, \mathbb{P})$ to our collection of probability measures $(\mathfrak{M}, \mathcal{B}(\mathfrak{M}))$ equipped with a suitable Borel $\sigma$-field. This is equivalent to being a (a.s.) locally finite Markov kernel from a probability space $(\Omega, \mathcal{F}, \mathbb{P})$ to our sample space $(\mathfrak{X}, \mathcal{X})$. 
+\end{defn} 
+
+Thus we can view $P$ as a map $P: \Omega \times \mathcal{X} \to \mathbb{R}$ such that $P_{\omega}$ is a measure on $(\mathfrak{X}, \mathcal{X})$ for every $\omega \in \Omega$. Thus $P_{\omega} \in \mathfrak{M}$.
+
+Now, also from the definition, for fixed $A \in \mathcal{X}$, $P(A) : \Omega \to \mathbb{R}$ is a random variable. Therefore, we get that $(P(A) : A \in m\mathcal{X})$ is a stochastic process on the underlying probability space $(\Omega, \mathcal{F}, \mathbb{P})$.
+
+Then $\Pi$ is a measure on $(\mathfrak{M}, \mathcal{M})$ where $\mathcal{M}$ is some Borel $\sigma$-field for the weak topology etc... and it makes sense to talk about
+
+\[
+\Pi(M) = \text{Pr}(P \in M) 
+\]
+
+for some probability measure Pr on $(\mathfrak{M}, \mathcal{M})$. Therefore, we can speak of drawing a measure $P$ from the prior $\Pi$ and then sampling observations $X \in \mathfrak{X}$ from $P$.
+
+\subsubsection{Countable Sample Spaces}
+
+A probability distribution on a countable sample space (equipped with the $\sigma$-field of all its subset) can be represented as a infinite-length probability vector $s = (s_1, s_2, \dotsc)$ , thus assigning probability weights to each element in the sample space. This can be trivially seen in, for example, a Poisson distribution where we get the probability vector:
+\[
+\left(e^{-\lambda}\frac{\lambda^{k}}{k!}\right)_{k=0}^{\infty}
+\]
+
+Therefore, a prior on the set $\mathfrak{M}$ of all probability measures on a countable sample space can therefore be identified with the distribution of a random element with values in the countable-dimensional unit simplex
+\begin{equation}
+\mathbb{S}_{\infty} = \left\lbrace s = (s_1, s_2, \dotsc): s_j \geq 0, j \in \mathbb{N}, \sum_{j=1}^{\infty}{s_j} = 1\right\rbrace
+\end{equation}
+
+Characterising the $\sigma$-field on $\mathbb{S}_{\infty}$ by the $\sigma$-algebra generated by the coordinate maps $s \mapsto s_{i}, i \in \mathbb{N}$, then this shows that a map $p$ from some probability space into $\mathbb{S}_{\infty}$ is a random element if and only if every coordinate variable $p_{i}$ is a random variable. Hence a prior corresponds to an infinite sequence of nonnegative random variables $p_1, p_2, \dotsc$ that add up to 1.
+
+We can use this fact to sample from our prior $\Pi$ by obtaining a sequence $Y_1. Y_2, \dotsc$ of random variables such that their sum $\sum_{i=1}^{\infty}{Y_{i}} = 1$. We do this via several methods.
+
+\subsubsection{Construction through Normalization}
+
+Given nonnegative random variables $Y_1, Y_2, \dotsc$ such that $\sum_{j=1}^{\infty}{Y_j}$ is positive and converges a.s. we can define a prior on $\mathbb{S}_{\infty}$ by putting
+\begin{equation} \label{normalization}
+p_k = \frac{Y_k}{\sum_{j=1}^{\infty}{Y_j}}, \qquad k \in \mathbb{N}
+\end{equation}
+
+A simple sufficient condition for the a.s. convergence of the random series is that $\sum_{j=1}^{\infty}{\E (Y_j)} < \infty$. The construction follows by the following lemma:
+
+\begin{lem}
+If $Y_1, Y_2, \dotsc$ are independent, positive random variables with $\sum_{j=1}^{\infty}{Y_j} < \infty$ a.s. and marginal densities, i.e. the density of $(Y_i)_{i \in I}$ where $I \subset \mathbb{N}$, is positive everywhere in $(0, \infty)$, then the support of the prior defined by (\ref{normalization}) is equal to the full space $\mathbb{S}_\infty$. 
+\end{lem}  
+
+\subsubsection{Construction through Stick Breaking}
+
+We perform the following algorithm to distribute the total mass 1, conceptually visualised with a stick of length 1, randomly to each element of $\mathbb{N}$.
+\begin{enumerate}
+\item We first break the stick at the point given by the random variable $V_1$ where $0 \leq V_1 \leq 1$ and assign mass $V_1$ to $p_1$.
+\item We think of the remaining mass $1 - V_1$ as a new stick and break it into two pieces of relative lengths $V_2$ and $1 - V_2$ according to the value of random variable $V_2$. We assign mass $(1 - V_1)V_2$ to the point $p_2$
+\item We repeat in this way so that point $p_j$ has mass
+\begin{equation} \label{stickbreak}
+p_j = \left(\prod_{l=1}^{j-1}{(1-V_l)}\right)V_j
+\end{equation}
+
+\end{enumerate}
+
+\subsubsection{Countable Dirichlet Process}
+
+We construct the countable Dirichlet distribution via stick breaking:
+WE choose the variables $V_1, V_2, \dotsc$ independently with $V_j \sim \text{Be}(\alpha_j, \sum_{l=j+1}^{\infty}{\alpha_l}$ and define $(p_1, p_2, \dotsc )$ by (\ref{stickbreak}).
+
+It follows easily that for any $k \in \mathbb{N}$,
+
+\begin{equation}
+\left(p_1, \dotsc, p_k, 1 - \sum_{j=1}^{k}{p_j}\right) \sim \text{Dir}\left(k+1; \alpha_1, \dotsc, \alpha_k, \sum_{j=k+1}^{\infty}{\alpha_j}\right)
+\end{equation}
+and so we have a Dirichlet Process
+
+\begin{defn}
+A random measure $P$ on $(\mathfrak{X}, \mathcal{X})$ is said to possess a Dirichlet process distribution DP($\alpha$) with base measure $\alpha$ on the measurable space $(\mathfrak{X}, \mathcal{X})$ if, for every finite measurable partition $A_1, \dotsc, A_k$ of $\mathfrak{X}$, we have that the joint distribution of random variables $P(A_1), \dotsc, P(A_k)$ satisfy
+\[
+(P(A_1), \dotsc, P(A_k)) \sim \text{Dir}\left(k+1; \alpha(A_1), \dotsc, \alpha(A_k)\right) 
+\]
+\end{defn}
+
+Therefore, in our case, the random variables $(p_1, p_2, \dotsc )$ follow a Dirichlet process.
+
+Suppose that we have a sample of i.i.d observations $X_1, \dotsc, X_n$ from $p$.
+The likelihood $L$, therefore, is given by
+\[
+L(p) = \prod_{j=1}^{\infty}{p_{j}^{N_j}}
+\]
+where $N_j = \sum_{i=1}^{n}{X_{i}^{(j)}}$ i.e the sum of the $j$th component of all the observations.
+
+The vector $N = (N_1, N_2, \dotsc)$ is a sufficient statistic, and hence the posterior given $N$ is the same as the posterior given the original observations.
+
+For any $l \in \mathbb{N}$,
+\begin{equation} \label{multiNom}
+\left( N_1, N_l, n - \sum_{j=1}^{l}{N_j}\right) \sim \text{MN}_{l+1}\left(n; p_1, \dotsc, p_l, 1 - \sum_{j=1}^{\infty}{p_j}\right).
+\end{equation}
+
+By conjugacy of the finite Dirichlet distribution with the multinomial likelihood, we get that the posterior density of $(p_1, \dotsc, p_l, 1- \sum_{j=1}^{l}{p_j})$ given $N_1, \dotsc, N_l$ is given by
+\[
+\text{Dir}\left(l+1; \alpha_1 + N_1, \dotsc, \alpha_l + N_l, \sum_{j=l+1}^{\infty}{\alpha_j} + n - \sum_{j=1}^{l}{N_j}\right)
+\]
+
+Using part (i) of Proposition G.3, we can aggregate entries in the last cell on a partition $\{1\}, \dotsc, \{k\}, \{k+1, k+2, \dotsc \}$ for $(k \leq l)$ to give that the posterior density of $\left(p_1, \dotsc, p_k, 1 - \sum_{j=1}^{k}{p_j}\right)$ given $N_1, \dotsc, N_l$ is given by
+\[
+\text{Dir}\left(k+1; \alpha_1 + N_1, \dotsc, \alpha_k + N_k, \sum_{j=k+1}^{\infty}{\alpha_j} + n - \sum_{j=1}^{k}{N_j}\right)
+\]
+
+Since this density only depends on $N_1, dotsc, N_k$ we get that this posterior density of $\left(p_1, \dotsc, p_k, 1 - \sum_{j=1}^{k}{p_j}\right)$ given $N_1, \dotsc, N_l$ is the same for every $l \geq k$. Thus, since we have that $\sigma(N_1, \dotsc, N_l)$ is a filtration in $l$ and $\sigma(N)$ is the minimal $\sigma$-algebra generate by this filtration then by L\'{e}vy's zero-one law, the above posterior density is the same for $\left(p_1, \dotsc, p_k, 1 - \sum_{j=1}^{k}{p_j}\right)$ given $N$.
+
+The posterior parameters depend on the prior parameters and the new parameter is given simply by $\alpha \mapsto \alpha + N$ (element-wise).
+
+In analogy with thte finite dimensional Dirichlet distribution, it is natural to call the prior the \textit{Dirichlet process} on $\mathbb{N}$ (or the \textit{countable Dirichlet process}. We shall write $(p_1, p_2, \dotsc) \sim \text{DP}(\alpha)$ where $\alpha = (\alpha_1, \alpha_2, \dotsc )$.
+
+From the properties of the finite-dimensional Dirichlet distribution, the posterior mean can be written as
+\[
+\E \left(p_j | X_1, \dotsc, X_n \right) = \frac{a_j + N_j}{\sum_{l=1}^{\infty}{a_l} + n}
+\]
+This seems intuitively correct, since higher $N_j$ will provide a greater mass on $p_j$.
+
+\subsubsection{Dirichlet Process on Arbitrary Sample Spaces}
+
+We saw previously that for a countable Dirichlet process prior, the posterior distribution is again a countable Dirichlet process. This result extends also to Dirichlet process on an arbitrary space.
+
+Consider observations $X_1, X_2, \dotsc, X_n$ sampled independently from a distribution $P$ that was drawn from a Dirichlet prior distribution. By some abuse of language, we will say that this sample is from the Dirichlet process.
+
+\begin{thm}
+(Conjugacy) The DP$\left(\alpha + \sum_{i=1}^{n}{\delta_{X_i}}\right)$ process is a version of the posterior distribution given an i.i.d sample $X_1, \dotsc, X_n$ from the DP($\alpha)$-process.
+\end{thm}
+
+\subsubsection{Construction through P\'{o}lya Urn Scheme}
+
+\begin{enumerate}
+\item $X_1 \sim \bar{\alpha}$
+\item $X_{n+1} | X_1, \dotsc, X_n \sim \frac{\alpha + \sum_{i=1}^{n}{\delta_{X_i}}}{|\alpha| + n}$
+\end{enumerate}
+
+By de Finetti's theorem, there exists a random probability measure $P$ such that $X_i | P \overset{\text{i.i.d}}{\sim} P$. We see in Section 4.2.4 that the law of $P$ is the DP($\alpha$)-process.
+
+\subsubsection{Stick-Breaking Representation}
+
+The stick-breaking representation of a Dirichlet process expresses it as a random discrete measure with stick-breaking weights, based on the beta-distribution.
+
+The representation gives an easy method to simulate a Dirichlet process, at least approximately. We use this to simulate our Dirichlet process
+
+\begin{thm}
+If $\theta_1, \theta_2, \dotsc \overset{\text{iid}}{\sim}\bar{\alpha}$ and $V_1, V_2, \dotsc \overset{\text{i.i.d}}{\sim} \text{Be}(1, M)$ are independent random variables and $W_j = V_j\prod_{l=1}^{j-1}{(1-V_l)}$ then $\sum_{j=1}^{\infty}{W_j\delta_{\theta_j}} \sim \text{DP}(M\bar{\alpha})$.
+\end{thm}
+
+Note that
+\begin{thm}
+(Discreteness) Almost every realization from the DP($\alpha$) is a discrete measure: $\text{DP}_{\alpha}(P \in \mathfrak{M}: P \text{ is discrete}) = 1$.
+\end{thm}
+
+This is perhaps disappointing, especially if the intention is to model absolutely continuous probability measures. In particular, the Dirichlet process cannot be used as a prior for density estimation. We therefore actually use a Dirichlet Process mixture.
+
+\subsubsection{Dirichlet Process Mixtures}
+
+The discreteness of the Dirichlet process makes it useless as a prior for estimating a density. This can be remedied by convolving it with a kernel. Although it is rarely possible to characterize the resulting posterior distribution analytically, a variety of efficient and elegant algorithms allows us to approximate it numerically.
+
+We follow the same definition in Section \ref{mixtures} with $F$ equipped with Dirichlet process prior but we also allow the kernel to depend on an additional parameter $\phi \in \Phi$, giving mixtures $p_{F, \phi}(x) = \int{\psi_{i}(x;\theta, \phi)dF(\theta)}$.
+
+For $x \mapsto \psi_i(x;\theta,\phi)$ probability density functions (relative to a given $\sigma$-finite dominating measure $\nu$, consider
+
+\[
+X_i \overset{\text{i.i.d}}{\sim} p_{i, F, \phi}(x) = \int{\psi_i(x; \theta, \phi)dF(\theta)} 
+\]
+
+We equip $F$ and $\phi$ with independent priors $F \sim \text{DP}(\alpha)$ and $\phi \sim \pi$.
+
+The resulting model can be equivalently written in terms of $n$ latent variables $\theta_1, \dotsc, \theta_n$ as
+
+\begin{equation} \label{model}
+X_i | \theta_i, \phi, F \overset{\text{ind}}{\sim} \psi_i(\cdot; \theta_i, \phi), \qquad \theta_i | F, \phi \overset{\text{iid}}{\sim} F, \qquad F \sim \text{DP}(\alpha), \qquad \phi \sim \pi
+\end{equation}
+
+The latent variables $\theta_1, \dotsc, \theta_n$ help to make the description simpler, since $F | \theta_1, \dotsc, \theta_n \sim \text{DP}(\alpha + \sum_{i=1}^{n}{\delta_{\theta_i}})$
+
+The posterior distribution of any object of interest can be described in terms of the posterior distribution of $(F, \phi)$ given $X_1, \dotsc, X_n$.
+
+Note that for any measurable function $\psi$
+\begin{equation} \label{condExp}
+\E \left[ \int{\psi dF | \theta_1, \dotsc, \theta_n, X_1, \dotsc, X_n} \right] = \frac{1}{|\alpha| + n}\left[\int{\psi d\alpha} + \sum_{j=1}^{n}{\psi(\theta_j)}\right]
+\end{equation}
+
+We use this to simulate from the posterior distribution of $(\theta_1, \dotsc, \theta_n)$ based on a weighted generalized P\'{o}lya urn scheme.
+
+\begin{thm}
+(Gibbs sampler) In the model (\ref{model}) the conditional posterior distribution of $\theta_i$ is given by
+\begin{equation}
+\theta_i | \theta_{-1}, \psi, X_1, \dotsc, X_n \sim \sum_{j \neq i}{q_{i,j} \delta_{\theta_j} + q_{i,0}G_{b,i}} 
+\end{equation}
+where $(q_{i,j}:j \in \{0,1, \dotsc, n\} \setminus \{i\})$ is the probability vector satisfying
+\[
+q_{i,j} \propto 
+\begin{cases}
+\psi_{i}(X_i;\theta_j, \phi), & j \neq i, j \geq 1, \\
+\int{\psi_{i}(X_i; \theta, \phi)d\alpha(\theta)}, & j = 0,
+\end{cases}
+\]
+and $G_{b,i}$ is the baseline posterior measure given by
+\[
+dG_{b,i}(\theta | \phi, X_i) \propto \ \psi_{i}(X_i; \theta, \phi)d\alpha(\theta)
+\]
+\end{thm}
+
+See MCMC Methods in section 5.2 to simulate from the posterior distribution in the Dirichlet process. The basic algorithm uses the Gibbs sampling in above theorem to generate $\theta_1, \dotsc, \theta_n$ given $X_1, \dotsc, X_n$ and then we can readily obtain the posterior $F$ given $X_1, \dotsc, X_n$.
+
+\subsection{Gugushvili Problem Formulation}
+
+We consider the problem of estimating density $f_{0}$ from the non-parametric class $\mathcal{F}$ of location mixtures of normal densities. These are not location-scale since we fix $\sigma$.
+
+\begin{eg}
+Consider distribution $F$ on $(\mathbb{R}, \mathcal{B})$ given by
+\[
+F(\cdot) = \sum_{j=1}^{n}{p_j\delta_{\mu_j}(\cdot)}
+\]  
+where $\sum_{j=1}^{n}{p_j} = 1$ and $\delta_{\mu_i}$ denotes the dirac measure centred at $\mu_i \in \mathbb{R}$.
+
+Then we get that
+\[
+\int{\frac{1}{\sigma}\psi\left(\frac{x- \mu}{\sigma}\right)dF(\mu)} = \sum_{j=1}^{n}{p_j\frac{1}{\sigma}\psi\left(\frac{x- \mu_j}{\sigma}\right)}
+\]
+so we get a weighted sum of normal densities. Therefore, mixtures basically generalise this idea of returning a weighted sum of densities from a specific parametric family.
+\end{eg}
+
+\subsubsection{Prelims and Notation}
+
+Let $\mathbb{P}_{f}$ be the law of the jumps $Y_1$ of the CPP.
+
+Let $\mathbb{Q}_{\lambda, f}^{\Delta}$ be the law of the increments $Z_1$ of the discretely observed points of the CPP. These $Z_i$ have same distribution as a Poisson random sum
+
+Let $\mathbb{Q}_{\lambda, f}^{\Delta, n}$ be the joint law of the increments $\mathcal{Z}_{n}^{\Delta} = (Z_{1}^{\Delta}, \dotsc, Z_{n}^{\Delta})$ of the discretely observed points of the CPP.
+
+Let $\mathbb{R}_{\lambda, f}^{\Delta}$ be the law of $(X_t : t \in [0, \Delta])$ i.e. the law of the CPP restricted to interval $[0, \Delta]$.
+
+By (\ref{characteristicPS}) (we need to change it to consider $\Delta$) we know that the characteristic function of the Poisson random sum $X$ is given by
+\[
+\phi_{X}(t) = e^{-\lambda \Delta + \lambda \Delta \phi_{f}(t)}
+\]
+
+We also saw this can be written as 
+\[
+\phi_{X}(t) = e^{-\lambda \Delta} + \frac{1 - e^{-\lambda \Delta}}{e^{\lambda \Delta} - 1}(e^{\lambda \Delta \phi_{f}(t)} - 1)
+\]
+
+Since we are only considering mixtures of normal densities as our 'true' density $f$ we know that $\phi_{f}(t) \to 0 \text{ as } t \to \infty$ (remember for $N(\mu, \sigma^2), \phi_{f}(t) = e^{it\mu - \frac{1}{2}\sigma^2 t^2}$). Therefore, we get that $\phi_{X}(t) \to e^{-\lambda \Delta} \text{ as } t \to \infty$. Thus, we see that since $\phi_{X}(t)$ converges to an injective function, $\lambda$ is identifiable from $X$. (This may be irrelevant).
+
+\begin{prop}
+The law $\mathbb{Q}_{\lambda, f}^{\Delta}$ of $X$ is absolutely continuous with respect to the measure $\mu = \delta_{\{0\}} + \mathrm{Leb}$ and has Radon-Nikodym derivative
+\begin{equation} \label{Radon-Nikodym}
+\frac{\mathrm{d}\mathbb{Q}_{\lambda, f}^{\Delta}}{\mathrm{d}\mu}(x) = e^{\lambda \Delta} \mathbbm{1}_{\{0\}}(x) + (1 - e^{\lambda \Delta})\sum_{m=1}^{\infty}{a_m(\lambda \Delta) f^{\ast m}(x)\mathbbm{1}_{\mathbb{R}\setminus \{0\}}(x)}
+\end{equation}
+where
+\begin{equation}
+a_m(\lambda \Delta) = \frac{1}{e^{\lambda \Delta} - 1}\frac{(\lambda \delta)^m}{m!}
+\end{equation}
+and $f*m$ denotes the m-fold convolution of $f$ with itself.
+\end{prop}
+
+\begin{proof}
+Suppose we have $A \in \mathcal{B}$ such that $\mu(A) = 0$. Then $0 \notin A$ and $A$ has Lebesgue-measure zero. Therefore, under event $A$, the Poisson random sum $X$ is non-zero and we have 
+\begin{align*}
+\mathbb{Q}_{\lambda, f}^{\Delta}(A) &= \sum_{n=1}^{\infty}{\mathbb{P}(Y_1 + \dotsb + Y_n  \in A, N = n)} \\
+&= \sum_{n=1}^{\infty}{\mathbb{P}(Y_1 + \dotsb + Y_n  \in A)\mathbb{P}(N = n)} \\
+&= 0
+\end{align*}
+since $Y_1 + \dotsb + Y_n$ has a density. Therefore, the first statement follows. Note that for $A \in \mathcal{B}$
+\begin{align*}
+\mathbb{Q}_{\lambda, f}^{\Delta}(A) &= \mathbb{P}(N = 0)\int_{A}{d\delta_{\{0\}}} + \sum_{n=1}^{\infty}{\mathbb{P}(Y_1 + \dotsb + Y_n  \in A)\mathbb{P}(N = n)} \\
+&= e^{\lambda \Delta}\int_{A}{d\delta_{\{0\}}} + (1 - e^{\lambda \Delta})\sum_{n=1}^{\infty}{a_m(\lambda \Delta)\int_{A}{f^{\ast m}(x)dx}} & \text{Using Lemma below} \\
+&= \int_{A}\left[{e^{\lambda \Delta} \mathbbm{1}_{\{0\}}(x) + (1 - e^{\lambda \Delta})\sum_{m=1}^{\infty}{a_m(\lambda \Delta) f^{\ast m}(x)\mathbbm{1}_{\mathbb{R}\setminus \{0\}}(x)}}\right]d\mu(x)
+\end{align*}
+\end{proof}
+
+\begin{lem}
+Let $X$ and $Y$ be two independent random variables with density
+functions $f_{X}$ and $f_{Y}$. Then the sum $Z = X + Y$ is a random variable with density function $f_{Z}$, where $f_Z$ is the convolution of $f_X$ and $f_Y$. 
+\end{lem}
+
+\subsubsection{Algorithms for drawing from the posterior}
+
+We now discuss how to draw  from the distribution of $f$, conditional on $\mathcal{Z}_{n}^{\Delta}$. As before, we assume observations at equidistant times $0, \Delta, 2\Delta, \dotsc, n\Delta$.  We set $Z_i = X_{i\Delta} - X_{(i-1)\Delta}$ and $Z = (Z_1, \dotsc, Z_n)$. We also assume for simplicity that $\lambda$ is known and fixed.
+
+As before, since a zero increment provides no additional information on the density of $f$, we can discard these carefully. If we could obtain a tractable form for the conditional density of a nonzero increment $Z_i$ then we can directly apply Bayes theorem directly and use a standard MCMC algorithm to sample from the posterior.
+
+However, the conditional density, given by
+\begin{equation} \label{conddensity}
+p(z | f) = \frac{e^{-\lambda \Delta}}{1- e^{-\lambda \Delta}}\sum_{k=1}^{\infty}{\frac{(\lambda \Delta)^k}{k!}f^{\ast k}(z)}
+\end{equation}
+
+
+is generally rather intractable due to the infinite weighted sum of convolutions. To see this, suppose simply that $f$ is a weighed sum of 2 normal densities:
+\[
+f(\cdot) = \rho_1 \psi(\cdot; \mu_1, \sigma) + \rho_2 \psi(\cdot; \mu_2, \sigma)
+\]
+Then we get
+\[
+f^{\ast k}(\cdot) = \sum_{l=0}^{k}{\binom{k}{l} \rho_{1}^{l}\rho_{2}^{k-1}\psi(\cdot; l\mu_1 + (k-l)\mu_2, k\sigma)}
+\]
+Plugging this into (\ref{conddensity}) we immediately see that it will be difficult to compute values (even approximately) for the density.
+
+Therefore, we introduce auxiliary variables to circumvent the intractable form of $p(z | f)$. To motivate the choice of auxiliary variables, consider the case where the CPP is observed continuously on the interval $[0, T]$.
+Then we know exactly when the jumps have occurred. Suppose that jumps occur at $T_1 < T_2 < \dotsb < T_N$ where $T_N \leq T$. Suppose that $J_i$ are the corresponding jump sizes. Also suppose, for convention, that $T_0 = 0$. Then the continuous time likelihood
+\begin{align*}
+L([0, T]) &= L(\{(T_i, J_i)\}_{i=1}^{N}) \\
+&= \prod_{i=1}^{N}{e^{-\lambda (T_i  - T_{i-1})}\lambda f(J_i)} \\
+&= \lambda^N e^{-\lambda T_N} \prod_{i=1}^{N}{f(J_i)}
+\end{align*}
+
+This likelihood is tractable and so it naturally suggests that we construct a data augmentation scheme to 'fill in' missing jump points in between our observations.
+
+(Maybe show by picture)
+
+We refer to the set of missing values in the $i$ith segment by $x_{(i-1, i)}$. Therefore, we get that the set of all jump values in the CPP is given by
+\[
+x^{\text{mis}} = \bigcup_{i=1} x_{(i-1, i)}
+\]
+
+Once we have this, then we are back to the continuous time case and we have a tractable likelihood. We want a Markov chain with invariant distribution $p(x^{\text{mis}}, f | Z)$. Therefore, our algorithm is as follows:
+\begin{enumerate}
+\item Initialise $x^{\text{mis}}$.
+\item Draw $f | (x^{\text{mis}}, Z)$. We do this via maximising the likelihood explained above.
+\item Draw $x^{\text{mis}} | (f, Z)$.
+\item Repeat Steps 2 and 3 many times
+\end{enumerate}
+
+Under weak conditions, the iterate for $f$ are draws from the required posterior distribution. We, however, need to perform imputation in Step 3 to get draws of $x^{\text{mis}}$. This is nontrivial but we will see that we can do with less imputation.
+
+\subsubsection{Auxiliary Variables}
+
+Suppose $Y$ has density $f$. Since $f$ is a mixture (weighted sum) of normal densities, then drawing realizations of $Y$ can be simulated by first drawing label $l$ from $1, \dotsc, J$ with probability $\rho_l$ and then drawing from the $N(\mu_l, \sigma^2)$ distribution.
+
+Our auxiliary variables are the number of jumps on segment $i$ from the label $j$ which we denote $n_{ij}$. For segment $i$ denote
+\[
+a_i = (n_{i1}, n_{i2}, \dotsc, n_{iJ})
+\]
+
+We set
+\[
+n_i = \sum_{j=1}^{J}{n_{ij}}, \qquad s_j = \sum_{i=1}^{n}{n_{ij}}, \qquad s = \sum_{j=1}^{J}{s_j} = \sum_{i=1}^{n}{n_i}
+\]
+so $n_i$ denotes the total number of jumps in the $i$th segment, $s_j$ denotes the total number of jumps on type/label $j$, $s$ denotes the total number of jumps of all types.
+ 
+\subsubsection{Re-parametrisation and Prior Specification}
+
+We define
+\[
+\psi_j = \lambda \rho_j, \qquad j = 1, \dotsc, J
+\]
+Then
+\[
+\lambda = \sum_{j=1}^{J}{\psi_j}, \qquad \rho_j = \frac{\psi_j}{\sum_{j=1}^{J}{\psi_j}}
+\]
+
+The reason for this re-parametrisation is that a CPP $X$ whose jumps are of $J$ types can be decomposed as $Z = \sum_{j=1}^{J}{Z_j}$, where the $Z_j$ are CPPs whose jumps are of type $j$ only and where the parameter of the Poisson random variable is $\psi_j$.
+We denote $\theta = (\psi, \mu, \tau)$ with $\psi = (\psi_1, \dotsc, \psi_J)$ and $\mu = (\mu_1, \dotsc, \mu_J)$ and $\tau = \frac{1}{\sigma}$.
+
+We take priors
+\[
+\begin{array}{r c l}
+\psi_1, \dotsc, \psi_J & \overset{\text{i.i.d}}{\sim} & \mathcal{G}(\alpha_0, \beta_0) \\
+\mu_1, \dotsc, \mu_J | \tau & \overset{\text{ind}}{\sim} & \mathcal{N}(\xi_j, \frac{1}{\kappa\tau}) \\
+\tau & \sim & \mathcal{G}(\alpha_1, \beta_1)
+\end{array}
+\]
+
+with positive hyper-parameters $(\alpha, \beta, \kappa, \xi)$ fixed.
+
+\subsubsection{Hierarchical Model}
+
+We want to find $p(a, \theta | Z)$. We do this using 
+\begin{align*}
+p(\theta, a | Z) &= p(a | \theta, Z)p(\theta | Z) \\
+&\propto p(a | \theta, Z)p(Z | \theta)p(\theta)
+\end{align*}
+
+There are two clear steps for sampling for the required distribution. Therefore, we write our observation as a hierarchical model:
+\[
+\begin{array}{r c l}
+\theta & \sim & \pi(\theta) \\
+n_{ij} | \psi & \overset{\text{ind}}{\sim} & \mathcal{P}(\psi_j \Delta) \\
+Z_i | a_i, \mu, \tau & \overset{\text{ind}}{\sim} & \mathcal{N}(a_{i}^{T} \mu, \frac{n_i}{\tau})
+\end{array}
+\]
+
+We construct a Metropolis-Hastings algorithm to draw from $(\theta, a | Z)$. The two main steps are:
+\begin{enumerate}
+\item Update segments: For each segment $i = 1, \dotsc, n$, draw $a_i$ conditional on $(\theta, Z, a_{-i})$
+\item Update parameters: draw $\theta$ conditional on $(Z, a)$
+\end{enumerate}
+ 
+\subsubsection{Updating segments}
+
+We have to draw from
+\begin{equation}
+p(a_i | \theta, Z, a_{-i}) = \frac{p(\theta, Z, a)}{p(\theta, Z, a_{-i})}
+\end{equation}
+
+We use our hierarchical model to express $p(\theta, Z, a)$ in terms of known distributions:
+
+\begin{align*}
+p(\theta, Z, a) &= p(\theta)p(Z, a | \theta) \\
+&= p(\theta)p(Z | a, \theta)p(a | \theta) \\
+&= p(\theta)\left(\prod_{i=1}^{n}{\phi\left(Z_i; a_{i}^T \mu, \frac{n_i}{\tau}\right)}\right)\left(\prod_{i=1}^{n}{\prod_{j=1}^{J}{e^{-\psi_i \Delta}\frac{(\psi_i \Delta)^{n_{ij}}}{n_{ij}!}}}\right)
+\end{align*}
+
+Therefore, we get that
+\[
+p(a_i | \theta, Z, a_{-i}) \propto \phi\left(Z_i; a_{i}^T \mu, \frac{n_i}{\tau}\right)\prod_{j=1}^{J}{e^{-\psi_i \Delta}\frac{(\psi_i \Delta)^{n_{ij}}}{n_{ij}!}}
+\]
+
+We do this using a Metropolis Hastings step:
+First we draw a proposal $n_{i}^{\ast}$ for $n_i$ from a $\mathcal{P}(\lambda \Delta)$ distribution conditioned to have non-zero outcome. In other words we sample from a distribution with mass function
+\[
+p(k) = \frac{e^{-\lambda \Delta}}{1 - e^{-\lambda \Delta}} \frac{(\lambda \Delta)^k}{k!}, \qquad k = 1, 2, \dotsc
+\]
+
+Next we draw
+\[
+a_{i}^{\ast} = (n_{i1}^{\ast}, \dotsc, n_{iJ}^{\ast}) \sim \mathcal{MN}\left(n_{i}^{\ast}; \frac{\psi_1}{\lambda}, \dotsc, \frac{\psi_J}{\lambda}\right)
+\]
+thus sampling the number of jumps in segment $i$ of each type.
+
+Therefore, the proposal density is given by
+\begin{align*}
+q(a_{i}^{\ast} | \theta) &= \frac{e^{-\lambda \Delta}}{1 - e^{-\lambda \Delta}} \frac{(\lambda \Delta)^{n_{i}^{\ast}}}{n_{i}^{\ast}!} \binom{n_{i}^{\ast}}{n_{i1}^{\ast}, \dotsc, n_{iJ}^{\ast}} \prod_{j=1}^{J}{\left(\frac{\psi_j}{\lambda}\right)^{n_{ij}^{\ast}}} \\
+&= \frac{e^{-\lambda \Delta}}{1 - e^{-\lambda \Delta}} \prod_{j=1}^{J}{\left(\frac{\psi_j \Delta}{n_{ij}^{\ast}}\right)^{n_{ij}^{\ast}}}
+\end{align*}
+
+The acceptance probability for the proposal $n^{\ast}$ and the $a_{i}^{\ast}$ is
+
+\subsubsection{Updating parameters}
+
+We update the parameters directly using the following Lemma.
+
+\begin{lem}
+Conditional on $a$, we have that $\psi_1, \dotsc, \psi_J$ are independent and the following holds:
+\[
+\begin{array}{r c l}
+\psi_j | a & \overset{\text{ind}}{\sim} & \mathcal{G}(\alpha_0 + s_j, \beta_0 + n\Delta) \\
+\tau | z, a & \sim & \mathcal{G}(\alpha_1 + (n+J)/2, \beta_1 + (R - q^T P^{-1} q)/2) \\
+\mu | \tau, z, a & \sim & \mathcal{N}(P^{-1} q, \tau^{-1} P^{-1})
+\end{array}
+\]
+where $P$ is the symmetric $J \times J$ matrix given by
+\[
+P = \kappa I_{J \times J} + \tilde{P}, \qquad \tilde{P}_{jk} = \sum_{i}{n_{i}^{-1} n_{ij} n_{ik}}
+\]
+$q$ is the $J$-dimensional vector with
+\[
+q_j = \kappa \xi_j + \sum_{i}{n_{i}^{-1}n_{ij}z_i}
+\]
+$R > 0$ is given by
+\[
+R = \kappa \sum_{j=1}^{J}{\xi_{j}^{2}} + \sum_{i}{n_{i}^{-1} z_{i}^{2}}
+\]
+and $R - q^T P^{-1} q > 0$. 
+\end{lem}
+
+Note that adding $\kappa I_{J \times J}$ ensures the invertibility of $P$.
+
+\begin{proof}
+\begin{align*}
+p(\psi | \mu, \tau, z, a) &= p(\psi | a) \\
+&\propto p(a | \psi)\pi(\psi) \\
+&= \prod_{j=1}^{J}{\pi(\psi_j)\left(\prod_{i}{p(n_{ij} | \psi)}\right)} \\
+&\propto \prod_{j=1}^{J}{\pi(\psi_j)\left(\prod_{i}{e^{-\psi_j\Delta}(\psi_j\Delta)^{n_{ij}}}\right)} \\
+&= \prod_{j=1}^{J}{\pi(\psi_j)e^{-\psi_j n\Delta}(\psi_j\Delta)^{s_{j}}} \\
+&\propto \prod_{j=1}^{J}{\psi_{j}^{\alpha_{0} - 1}e^{-\beta_0 \psi_j}e^{-\psi_j n\Delta}(\psi_j\Delta)^{s_{j}}} \\
+&= \prod_{j=1}^{J}{e^{-\psi_j(\beta_0 + n\Delta)}\psi_{j}^{s_j + \alpha_0 - 1}}
+\end{align*}
+giving the required $\mathcal{G}(s_j + \alpha_0, \beta_0 + n \Delta)$ distribution.
+For $(\mu, \tau)$ we get
+\begin{align*}
+p(\mu, \tau | z, a) &\propto p(z |a, \mu, \tau)p(\mu, \tau | a) \\
+&= p(z | a, \mu, \tau)\pi(\mu | \tau)\pi(\tau) \\
+&\propto \left(\prod_{i=1}^{n}{\phi(z_i; a_{i}^{T} \mu, n_i/\tau)}\right)\left(\tau^{\alpha_1 - 1}e^{-\beta_1 \tau}\right) \left(\tau^{J/2} \exp{\left\lbrace -\frac{\tau\kappa}{2} \sum_{j=1}^{J}{(\mu_j - \xi_j)^2}\right\rbrace}\right) \\
+&\propto \tau^{\alpha_1 - 1 + (n + J)/2}\exp{\left(-\beta_1\tau - \frac{D(\mu)}{2}\tau\right)}
+\end{align*}
+where
+\begin{align*}
+D(\mu) &= \kappa\sum_{j=1}^{J}{(\mu_j - \xi_j)^2} + \sum_{i=1}^{n}{n_{i}^{-1}(z_i - a_{i}^{T} \mu)^2} \\
+&= \mu^{T} P \mu - 2 q^T \mu + R
+\end{align*}
+by easy calculation. Note that, by completing the square,
+\[
+\mu^{T} P \mu - 2 q^T \mu = (\mu - P^{-1} q)^{T} P (\mu - P^{-1}q) + q^{T} P^{-1} q
+\]
+It follows by this that $\mu | \tau, z, a \sim  \mathcal{N}(P^{-1} q, \tau^{-1} P^{-1}) $ Also,
+\begin{equation}
+\int{\exp(-\frac{\tau}{2}D(\mu))d\mu} \propto e^{-\frac{\tau R}{2}}\int{\exp\left(-\frac{\tau}{2}(\mu - P^{-1} q)^{T} P (\mu - P^{-1}q)\right)d\mu}
+\end{equation}
+Thus, we get that
+\begin{align*}
+p(\tau | z, a) &= \int{p(\tau, \mu | z, a)d\mu} \\
+&\propto \tau^{ \alpha_1 - 1 + (n + J)/2}\exp(-\beta_1 \tau)e^{-\tau R/2}(2\pi)^{J/2}\sqrt{|\tau^{-1}P^{-1}}\exp\left(\frac{1}{2}\tau q^T P^{-1} q \right)  \\
+&\propto \tau^{\alpha_1 + (n+J)/2 - 1}\exp{\left\lbrace -\tau\left(\beta_1 + \frac{1}{2}(R - q^T P^{-1} q)\right) \right\rbrace} 
+\end{align*}
+giving that $\tau | z, a  \sim  \mathcal{G}(\alpha_1 + (n+J)/2, \beta_1 + (R - q^T P^{-1} q)/2)$
+\end{proof}
 \end{document}

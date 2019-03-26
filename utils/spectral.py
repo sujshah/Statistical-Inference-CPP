@@ -59,20 +59,26 @@ def psi2(v, lamb, Z):
 def compute_f2(v, lamb, Z):
     ifft = np.fft.ifft(psi2(v, lamb, Z)*np.exp(-1j*v*N*delta/2)*eta)
     return N*ifft/(2*np.pi*lamb)
+
+def normal32(size):
+    return np.random.normal(loc=3, scale=2, size = size)
+
+def normalsep(size):
+    return (1/2)*np.random.normal(loc=2, scale=1, size=size) + (1/2)*np.random.normal(loc=10, scale=1, size=size)
     
 f2 = compute_f2(v, lamb, Z)
 plt.scatter(x, f1 + f2)
 plt.xlim(-4, 4)
 plt.ylim(0, 0.42)
-plt.plot(x, mlab.normpdf(x, 0, 1))
+plt.plot(x, (2/3)*mlab.normpdf(x, 0, 1) + (1/3)*mlab.normpdf(x, 3/2, 1/3))
 plt.show()
 
 
 n = 10000
-bandwidth = 0.1
+bandwidth = 0.25
 lamb = 0.3
 
-Z = non_zero_jumps(n, 1, 0.3, mixture_normals)
+Z = non_zero_jumps(n, 1, 0.3, normalsep)
 Z = Z[:1000]
 
 np.mean(mixture_normals(1000))
@@ -86,12 +92,18 @@ f2 = compute_f2(v, lamb, Z)
 x = -N*delta/2 + delta*(np.arange(N))
 
 plt.scatter(x, f1 + f2)
-plt.xlim(-4, 4)
+plt.xlim(-4, 10)
 plt.ylim(0, 0.5)
-plt.plot(x, (2/3)*mlab.normpdf(x, 0, 1) + (1/3)*mlab.normpdf(x, 3/2, 1/3))
+plt.plot(x, (1/2)*mlab.normpdf(x, 2, 1) + (1/2)*mlab.normpdf(x, 10, 1))
 plt.show()
 
 plt.scatter(x, f1)
+plt.xlim(-4,4)
+plt.ylim(0, 0.5)
+plt.show()
+
+f3 = abs(f1 + f2)
+plt.scatter(x, f3)
 plt.xlim(-4,4)
 plt.ylim(0, 0.5)
 plt.show()
