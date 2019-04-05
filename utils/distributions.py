@@ -5,6 +5,7 @@ Created on Mon Mar 25 14:46:24 2019
 """
 import numpy as np
 import scipy.stats as stats
+from scipy.special import factorial
 
 class Gaussian:
     """
@@ -18,18 +19,8 @@ class Gaussian:
         :param mean: mean.
         :param variance: variance.
         """
-        
-        if mean is not None:
-            self.mean = mean
-            
-            if variance is not None:
-                self.variance = variance
-            
-            else:
-                raise ValueError("Covariance information missing")
-        else:
-            raise ValueError("Mean information missing")
-        
+        self.mean = mean
+        self.variance = variance        
     
     def sample(self, n_samples=1):
         """
@@ -62,17 +53,8 @@ class MixtureOfGaussians:
         :param means: list of means
         :param variances: list of variances
         """
-        
-        if means is not None:
-            
-            if variances is not None:
-                self.gaussians = [Gaussian(mean=mean, variance=variance) for 
-                                  mean, variance in zip(means, variances)]
-            else:
-                raise ValueError("Variance information missing.")
-        else:
-            raise ValueError("Mean information missing.")
-        
+        self.gaussians = [Gaussian(mean=mean, variance=variance) for 
+                          mean, variance in zip(means, variances)]        
         self.mixing_coeffs = mixing_coeffs
         self.n_components = len(self.gaussians)
     
@@ -82,7 +64,7 @@ class MixtureOfGaussians:
         :param n_samples: number of samples required.
         :return: samples from the MoG distribution.
         """
-    
+        
         ii = np.random.choice(a=np.arange(self.n_components), size=n_samples,
                               p=self.mixing_coeffs)
         ns = [np.sum((ii == i).astype(int)) for i in range(self.n_components)]
@@ -99,10 +81,59 @@ class MixtureOfGaussians:
         :param x: the input array to evaulate the MoG pdf at.
         :return: MoG pdf.
         """
+        
         pdfs = np.array([gaussian.pdf(x) for gaussian in self.gaussians])
         
         return np.dot(self.mixing_coeffs, pdfs)
+
+
+class ZeroTruncatedPoission:
+    """
+    Implements a zero-truncated Poisson distribution.
+    Focus is on sampling and probability mass function.
+    """
     
+    def __init__(self, rate):
+        """
+        Initialises a zero-truncated Poisson distribution with lambda
+        parameter.
+        :param rate: lambda parameter.
+        """
+        
+        self.rate = rate
+    
+    def sample(self, n_samples=1):
+        """
+        Returns independent samples from the zero-truncated Poisson
+        distribution.
+        :param n_samples: number of samples required.
+        :return: independant samples from the zero-truncated Poisson
+                 distribution.
+        """
+        
+        unif_samples = np.random.uniform(size=n_samples)
+        event_times = -np.log(1 - unif_samples*(1 - np.exp(-self.rate)))
+        new_rate = self.rate - event_times
+        
+        return np.random.poisson(lam=new_rate) + 1
+    
+    def pmf(self, k):
+        """
+        Evaluates zero-truncated Poisson probability mass function across
+        a range of integer values.
+        :param k: integer array of values to evaulate pmf at.
+        :return: pmf of zero-truncated Poisson at the values of k.
+        """
+        
+        k = np.asarray(k)
+        k = k.astype(int)
+        if np.any(k[k < 1]):
+            raise TypeError("Certain values are outside the domain of values.")
+        pmf = (np.exp(-self.rate)/
+               (1 - np.exp(-self.rate)))*(np.array(self.rate)**k)/factorial(k)
+        
+        return pmf
+        
     
         
         

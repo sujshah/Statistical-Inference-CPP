@@ -11,8 +11,16 @@
 \usepackage{amsthm}
 \usepackage{cleveref}
 
+\usepackage{relsize}
+
 \usepackage{graphicx}
 \graphicspath{ {./plots/} }
+
+%code below for biblography environments
+\usepackage[numbers]{natbib} 
+\bibliographystyle{plainnat} 
+\usepackage{cite}
+\usepackage{url}
 
 \theoremstyle{theorem}
 \newtheorem{thm}{Theorem}
@@ -26,6 +34,11 @@
 \newtheorem{defn}{Definition}[section]
 \newtheorem*{eg}{Example}
 
+\theoremstyle{remark}
+\newtheorem*{rem}{Remark}
+\newtheorem*{note}{Note}
+\newtheorem{case}{Case}
+
 \providecommand{\E}{\mathbb{E}}
 
 \begin{document}
@@ -33,7 +46,11 @@
 \maketitle
 
 \begin{abstract}
+Jump processes are a group of continuous-time stochastic processes whose values move in discrete amounts at random times. The compound Poisson process sits near the centre of this rich class of processes, and its versatility makes it an exceptional candidate for modelling phenomena in the world. However, its versatility comes at a price - statistical inference on them is difficult when we only observe values at discrete points in time because a significant amount of information is lost. 
 
+In this essay, we discuss and implement various nonparametric methods for the estimation of a compound Poisson processes' defining properties. In particular, we first employ a spectral approach using suitable kernel functions as shown in van Es et al. \citep{vanes2007} and in Comte et al. \citep{comte2014}. We then visit nonparametric Bayesian inference and show its use following the approach laid out in Gugushvili et al. \citep{gugushvili2018}. Finally, we construct a novel Bayesian procedure based on an overlooked result in Duval \citep{duval2013} and illustrate its performance via numerical simulations.
+
+Since this essay is computational in flavour, we focus mainly on carefully deriving the forms of the estimators and analyse their performance on various example simulations. Therefore, we omit many theoretical guarantees of these estimators, but such results exist and are abundant in the literature referenced. 
 \end{abstract}
 
 \pagebreak
@@ -44,57 +61,140 @@
 
 \section{Introduction}
 
-\begin{defn}[Counting Process]
-A \textit{counting process} is a stochastic process $\{ N(t) : t \geq 0 \}$ with values that are non-negative, integer and non-decreasing i.e. $\forall s,t \geq 0 : s \leq t$ :
+Consider an established social media company, e.g. Facebook, with a database server handling read and write requests for photos. Users may upload or delete a photo, and such events occur at random. Also, their photos are of varying size due to factors such as camera quality or cropping, and, since we have little knowledge of these factors, we may assume that the amount of data required to store each photo is random. 
 
+An Engineer may ask questions like 'Is the capacity of the database server enough to store the photos?' or 'What is the amount of traffic on the server in a given time period?'. Under normal conditions, we can model the amount of data in the database server at a given time as a compound Poisson process and, due to the high frequency of writes, we may only be able to know this amount at discrete points in time. Thus, statistical inference on these discrete observations may be of great interest to gain more insight into such questions.   
+
+We begin by providing intuition behind the compound Poisson process and look at some of its key properties. We then formulate the statistical inverse problem at hand and address necessary technical details to set up the basic framework for estimation.
+
+\subsection{Compound Poisson Processes}
+
+Compound Poisson processes push the boundaries of Poisson processes, by allowing the jump sizes to follow a distribution rather than being of fixed unit size. We associate compound Poisson processes with the following three key properties:
 \begin{enumerate}
-
-\item $N(t) \geq 0$,
-\item $N(t)\in \mathbb{N}$,
-\item $N(s) \leq N(t)$.
-
+\item The occurrence of the jumps follow a Poisson process,
+\item The jumps sizes are independent, and follow a common distribution,
+\item The interarrival times between the jumps and the sizes of the jumps are mutually independent random variables.
 \end{enumerate}
-
-\end{defn}
 
 \begin{defn}[Poisson Process]
-A \textit{Poisson process with intensity $\lambda$} is a counting process $\{ N(t) : t \geq 0 \}$ with the following properties:
+A \textit{Poisson process with intensity $\lambda$} is a non-negative, non-decreasing, integer-valued stochastic process $(N_{t})_{t \geq 0}$ starting at 0 with the following properties:
 
 \begin{enumerate}
 
-\item $N(0) = 0$,
-\item It has independent increments i.e. $\forall n \in \mathbb{N}: 0 \leq t_{1} \leq t_{2} \leq \dotsb \leq t_{n}$, $N(t_{n}) - N(t_{n-1}), N(t_{n-1}) - N(t_{n-2}), \dotsc , N(t_{1})$ are independent,
-\item The number of occurrences in any interval of length t is a Poisson random variable with parameter $\lambda t$ i.e. $ \forall s,t : s \leq t$, $N(t) - N(s) \sim {\rm Poisson}(\lambda (t-s))$.
+\item It has independent increments:
 
-\end{enumerate}
-
-\end{defn}
-
-\begin{lem}
-A Poisson process with intensity $\lambda$ has exponentially distributed inter-arrival times with rate $\lambda$.  
-\end{lem}
-
-\begin{defn}[Compound Poisson Process] Let ${N(t) : t \geq 0}$ be a d-dimensional Poisson process with intensity $\lambda$. 
-
-Let $Y_{1}, Y_{2}, \dotsc$ be a sequence of i.i.d random variables taking values in $\mathbb{R}^{d}$ with common distribution $F$.
-
-Also assume that the $Y_{i}$'s are independent of the Poisson process $\{N(t) : t \geq 0 \}$.
-
-Then, a \textit{Compound Poisson process (CPP)} is a stochastic process $\{ X(t) : t \geq 0 \}$ such that
+For every $n \in \mathbb{N}$ and $t_1, \dotsc, t_n$ such that $0 \leq t_{1} \leq t_{2} \leq \dotsb \leq t_{n}$, we have that 
 \[
-X(t) = \sum_{i=1}^{N(t)} Y_{i}
+N_{t_{n}} - N_{t_{n-1}}, \dotsc , N_{t_2} - N_{t_1}, N_{t_{1}}
 \]
-where, by convention, we take $X(t) = 0$ if $N(t) = 0$.
+are mutually independent,
+\item The number of occurrences in any interval of length $\Delta$ is a Poisson random variable with parameter $\lambda \Delta$:
 
+For every $\Delta > 0$ and $t \geq 0$ we have that
+\[ 
+N_{(t+1) \Delta} - N_{t \Delta} \sim {\rm Po}(\lambda \Delta).
+\]
+\end{enumerate}
 \end{defn}
 
-Suppose we take discrete observations of a CPP i.e. we consider $X(\Delta), X(2\Delta), \dotsc$ where ${X(t) : t \geq 0}$ is a CPP. We want to estimate $F$. Note that the jump size $X(n\Delta) - X((n-1)\Delta)$ is equivalent in distribution to a Poission random sum of intensity $\Delta$:
+We use the well-known property that a Poisson process with intensity $\lambda$ has $\exp(\lambda)$-distributed inter-arrival times to simulate the Poisson process.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.5]{poisprocess.png}
+\caption{Simulation of a Poisson process with intensity 1}
+\label{poisprocess}
+\end{figure}
+
+As we can see in Figure \ref{poisprocess}, the jump sizes are of unit length. The compound Poisson process extends this by allowing the jumps to vary in size.
+
+\begin{defn}[Compound Poisson Process]
+Let $(N_{t})_{t \geq 0}$ be a Poisson process with intensity $\lambda$. Let $Y_{1}, Y_{2}, \dotsc$ be a sequence of i.i.d random variables with common distribution $F$. Also assume that this sequence is independent of the Poisson process.
+
+Then, a \textit{compound Poisson process with intensity $\lambda$ and jump distribution $F$} is a stochastic process $(X_{t})_{t \geq 0}$ such that
+\[
+X_{t} = \sum_{i=1}^{N_t} Y_{i}
+\]
+By convention, we take $X_t = 0$ if $N_t = 0$.
+\end{defn}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.1]{cppsim.png}
+\caption{Simulation of a compound Poisson process with intensity 1 and jump distribution $\mathcal{N}(0,1)$}
+\label{cppsim}
+\end{figure}
+
+\subsection{The Statistical Non-Linear Inverse Problem}
+
+In our example, we can only observe the process up to some time $T$. In addition, we can only observe the process at a discrete set of points in time, say every second. In other words we obtain observations $X_{\Delta}, X_{2\Delta}, \dotsc, X_{n\Delta}$ for some fixed $\Delta > 0$ and $n := \left\lfloor \frac{T}{\Delta} \right\rfloor$. We also assume that the intensity $\lambda$ of the compound Poisson process is known and that the jump distribution $F$ has jump density $f$. In this essay, we want to recover the jump density $f$ of the $Y_i$ jumps in the compound Poisson process from these $n$ observations.
+
+By the second property of a Poisson process and the i.i.d assumption of the jump distribution we get that for $0 < i \leq n$ and $X_{i\Delta} \neq X_{(i-1)\Delta}$
+\[
+X_{i\Delta} - X_{(i-1)\Delta} = \sum_{j=N_{(i-1)\Delta} + 1}^{N_{i\Delta}}{Y_j} 
+=^{d} \mathlarger{\mathlarger{\sum}_{j=1}^{N_{i\Delta} - N_{(i-1)\Delta}}{Y_j}} =^{d} \sum_{j=1}^{N}{Y_j}
+\]
+where $N \sim \mathrm{Po}(\lambda\Delta)$. By the first property of Poisson processes, all such $Z_i := X_{i\Delta} - X_{(i-1)\Delta}$ are mutually independent. Thus it is much easier to convert our observations into this form, and we call each observation increment $Z_i = \sum_{j=1}^{N}{Y_j}$ a \textit{Poisson random sum with parameter $\lambda \Delta$}.  
+
+\begin{rem}
+We shall see in Proposition ?? that an observation increment $Z_i$ of zero provides no additional information on the jump size density. Therefore, we focus on the non-zero increments and assume that we sample up to some random time $T_n$, where $T_n$ is the first moment we get $n$ non-zero increment observations.
+\end{rem}
+
+\subsection{Properties of Poisson random sums}
+
+We have now converted our problem into the problem of estimating the jump size density $f$ from $n$ observations of non-zero independent increments $(Z_i)_{i \geq 0})$. Each of the $Z_i$ are Poisson random sums with parameter $\lambda \Delta$, and thus we state and prove some properties of Poisson random sums that we will use throughout the essay.
+
+\begin{prop} \label{characteristicPS}
+For Poisson random sum $Z$ with parameter $\lambda \Delta$, the characteristic function of $X$, denoted by $\phi_{Z}$, is given by 
+\[
+\phi_Z(t) = \mathbb{E}e^{itZ} = e^{-\lambda\Delta + \lambda\Delta\phi_{f}(t)}
+\]
+where $\phi_{f}$ denotes the characteristic function of one of its terms $Y$ with density $f$. 
+\end{prop}
+
+\begin{rem}
+We will often, for convenience sake, denote $\phi_{X}$ to be the characteristic function of a random variable $X$ as well as $\phi_{g}$ to be the characteristic function of a random variable $X$ with density $g$. To avoid confusion, all densities will be written using a lower-case symbol, whilst random variables will be written using an upper-case symbol. 
+\end{rem}
+
+\begin{proof}
 \begin{align*}
-X(n\Delta) - X((n-1)\Delta) &= \sum_{i=1}^{N(n\Delta)}{Y_{i}} - \sum_{i=1}^{N((n-1)\Delta)}{Y_{i}} \\
-= \sum_{i=1}^{N(n\Delta) - N((n-1)\Delta)}{Y_{i}} \\
-=^{d} \sum_{i=1}^{N}{Y_{i}}
+\phi_{Z}(t) &= \E e^{itZ} = \E e^{it\sum_{i=1}^{N}{Y_{i}}} 
+= \E \prod_{i=1}^{N}{e^{itY_{i}}} 
+= \E \left[ \E \left[ \prod_{i=1}^{N}{e^{itY_{i}}} \middle| N \right] \right] \\
+          &= \E \prod_{i=1}^{N}{\E \left[ e^{itY_{1}} \middle| N \right]} & \text{(by i.i.d assumption of the } Y_{i}\text{'s)}  \\
+          &= \E \left[ \prod_{i=1}^{N(\lambda)}{\phi_{f}(t)} \right] & \text{(}Y_{1} \text{ and } N(\lambda) \text{ are independent)} \\
+          &= \E \left[ \exp(N(\lambda) \ln\phi_{f}(t)) \right] \\
+          &= \exp(\lambda(e^{\ln\phi_{f}(t)} - 1)) & \text{(MGF of a Poisson random variable)} \\
+          &= e^{-\lambda + \lambda \phi_{f}(t)}
 \end{align*}
-where $N \sim {\rm Poisson}{(\Delta)}$
+\end{proof}
+
+\begin{prop}
+The distribution of the Poisson random sum $X = \sum_{i=1}^{N}{Y_i}$ where $Y_i \overset{\text{i.i.d}}{\sim} F$ and $N \sim \text{Po}(\lambda)$ is absolutely continuous with respect to measure $\mu = \delta_{\{0\}} + \mathrm{Leb}$ and has Radon-Nikodym derivative
+\begin{equation} \label{R-N duval}
+\frac{\mathrm{d}\mathbb{P}_{X}}{\mathrm{d}\mu}(x) = e^{-\lambda \Delta} \mathbbm{1}_{\{0\}}(x) + (1 - e^{-\lambda \Delta})\sum_{m=1}^{\infty}{a_m(\lambda \Delta) f^{\ast m}(x)\mathbbm{1}_{\mathbb{R}\setminus \{0\}}(x)}
+\end{equation}
+where
+\begin{equation}
+a_m(\lambda \Delta) = \frac{1}{e^{\lambda \Delta} - 1}\frac{(\lambda \Delta)^m}{m!}
+\end{equation}
+and $f*m$ denotes the m-fold convolution of $f$ with itself.
+\end{prop}
+
+\begin{proof}
+Suppose we have $A \in \mathcal{B}$ such that $\mu(A) = 0$. Then $0 \notin A$ and $A$ has Lebesgue-measure zero. Therefore, under event $A$, the Poisson random sum $X$ is non-zero and we have 
+\begin{align*}
+\mathbb{P}_{X}(A) &= \sum_{n=1}^{\infty}{\mathbb{P}(Y_1 + \dotsb + Y_n  \in A, N = n)} \\
+&= \sum_{n=1}^{\infty}{\mathbb{P}(Y_1 + \dotsb + Y_n  \in A)\mathbb{P}(N = n)} \\
+&= 0
+\end{align*}
+since $Y_1 + \dotsb + Y_n$ has a density. Therefore, the first statement follows. Note that for $A \in \mathcal{B}$
+\begin{align*}
+\mathbb{P}_{X}(A) &= \mathbb{P}(N = 0)\int_{A}{d\delta_{\{0\}}} + \sum_{n=1}^{\infty}{\mathbb{P}(Y_1 + \dotsb + Y_n  \in A)\mathbb{P}(N = n)} \\
+&= e^{\lambda \Delta}\int_{A}{d\delta_{\{0\}}} + (1 - e^{\lambda \Delta})\sum_{n=1}^{\infty}{a_m(\lambda \Delta)\int_{A}{f^{\ast m}(x)dx}} & \text{Using Lemma \ref{conv}} \\
+&= \int_{A}\left[{e^{\lambda \Delta} \mathbbm{1}_{\{0\}}(x) + (1 - e^{\lambda \Delta})\sum_{m=1}^{\infty}{a_m(\lambda \Delta) f^{\ast m}(x)\mathbbm{1}_{\mathbb{R}\setminus \{0\}}(x)}}\right]d\mu(x)
+\end{align*}
+\end{proof}
 
 \section{Spectral Approach}
 
@@ -109,24 +209,6 @@ Van Es built on this idea for fixed sampling rate $\Delta = 1$ using the L\'{e}v
 \subsubsection{Construction of Density Estimator via suitable inversion of characteristic functions}
 
 We first note the following property:
-
-\begin{prop} \label{characteristicPS}
-For Poisson random sum $X$, the characteristic function of $X$, denoted by $\phi_{X}$, is given by $\phi_X(t) = \mathbb{E}e^{itX} = e^{-\lambda + \lambda \phi_{f}(t)}$ 
-\end{prop}
-
-\begin{proof}
-\begin{align*}
-\phi_{X}(t) &= \E e^{itX} \\
-          &= \E \left[ \exp\left(it\sum_{i=1}^{N(\lambda)}{Y_{i}}\right)\right] \\
-          &= \E \left[ \prod_{i=1}^{N(\lambda)}{\exp(itY_{i})} \right] \\
-          &= \E \left[ \E \left[ \prod_{i=1}^{N(\lambda)}{\exp(itY_{i})} \middle| N(\lambda) \right] \right] \\
-          &= \E \left[ \prod_{i=1}^{N(\lambda)}{\E \left[ \exp(itY_{1}) \;\middle|\; N(\lambda) \right]} \right] & \text{(by i.i.d assumption of the } Y_{i}\text{'s)}  \\
-          &= \E \left[ \prod_{i=1}^{N(\lambda)}{\phi_{f}(t)} \right] & \text{(}Y_{1} \text{ and } N(\lambda) \text{ are independent)} \\
-          &= \E \left[ \exp(N(\lambda) \ln\phi_{f}(t)) \right] \\
-          &= \exp(\lambda(e^{\ln\phi_{f}(t)} - 1)) & \text{(MGF of a Poisson random variable)} \\
-          &= e^{-\lambda + \lambda \phi_{f}(t)}
-\end{align*}
-\end{proof}
 
 We can rewrite $\phi_{X}(t)$ as:
 
@@ -253,7 +335,7 @@ Thus, for some kernel $w$ with characteristic function $\phi_{w}$ and observatio
 g_{nh}(x) = \frac{1}{nh}\sum_{i=1}^{n}{w\left(\frac{x - Z_{i}}{h}\right)}
 \]
 Letting $\phi_{\text{emp}}(t) = \frac{1}{n}\sum_{j=1}^{n}{e^{itZ_{j}}}$ be the empirical characteristic function, we get that
-\begin{align*}
+\begin{align*} \label{charformula}
 \phi_{g_{nh}}(t) &= \int_{-\infty}^{\infty}{e^{itx}g_{nh}(x)}dx \\
                  &= \int_{-\infty}^{\infty}{e^{itx}\frac{1}{nh}\sum_{j=1}^{n}{w\left(\frac{x - Z_{j}}{h}\right)}}dx \\
                  &= \frac{1}{n}\sum_{j=1}^{n}{e^{itZ_{j}}}\int_{-\infty}^{\infty}{e^{ithy}w(y)}dy &\left(\text{by the substitution } y = \frac{x - Z_{j}}{h} \right) \\
@@ -349,23 +431,23 @@ x_{k} = \frac{-N\delta}{2} + \delta k
 
 Thus we have
 \begin{equation}
-\hat{f}_{nh}^{(1)}(x_{k}) \approx \frac{1}{2\pi\lambda}\sum_{k=0}^{N-1}{e^{-ijk\eta\delta}e^{it_{j}\frac{N\delta}{2}}\psi^{(1)}(t_{j})\eta},
+\hat{f}_{nh}^{(1)}(x_{k}) \approx \frac{1}{2\pi\lambda}\sum_{j=0}^{N-1}{e^{-ijk\eta\delta}e^{it_{j}\frac{N\delta}{2}}\psi^{(1)}(t_{j})\eta},
 \end{equation}
 
 \begin{equation}
-\hat{f}_{nh}^{(2)}(x_{k}) \approx \frac{1}{2\pi\lambda}\sum_{k=0}^{N-1}{e^{ijk\eta\delta}e^{-it_{j}\frac{N\delta}{2}}\psi^{(2)}(t_{j})\eta},
+\hat{f}_{nh}^{(2)}(x_{k}) \approx \frac{1}{2\pi\lambda}\sum_{j=0}^{N-1}{e^{ijk\eta\delta}e^{-it_{j}\frac{N\delta}{2}}\psi^{(2)}(t_{j})\eta},
 \end{equation}
 
 Therefore, we take $\eta\delta = \frac{2\pi}{N}$ and we apply FFT on the sequence $\left\lbrace e^{it_{j}\frac{N\delta}{2}}\psi^{(1)}(t_{j})\eta \right\rbrace_{j=0}^{N-1}$ to get values for $\hat{f}_{nh}^{(1)}$ and we apply IFFT on the sequence $\left\lbrace e^{-it_{j}\frac{N\delta}{2}}\psi^{(2)}(t_{j})\eta \right\rbrace_{j=0}^{N-1}$ to get values for $\hat{f}_{nh}^{(2)}$.
 
 We take $N$ to be a power of 2 for computational speed up in calculating the Discrete Fourier Transforms and we choose $\eta$ relatively small so that $\delta$ can be relatively larger and so points are relatively separate from one another.
 
-The results for $N = 16384$ and $\eta = 0.01$ based on 1000 observations can be shown in Figure 1.
+The results for $N = 16384$ and $\eta = 0.01$ based on 1000 observations can be shown in Figure \ref{stdNormal}.
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.15]{fft_standard_normal.png}
-\caption{Density Estimator of Standard Normal}
+\includegraphics[scale=0.15]{spectralKDE.png}
+\caption{Kernel Density Estimator for Standard Gaussian}
 \label{stdNormal}
 \end{figure} 
 
@@ -373,7 +455,140 @@ The second example we consider is the case of $f$ being a mixture of two normal 
 \[
 f(\cdot) = \rho_{1}\psi(\cdot;\mu_{1},\sigma_{1}^{2}) + \rho_{2}\psi(\cdot;\mu_{2}, \sigma_{2}^{2}) 
 \] 
-where $\rho_{1} = \frac{2}{3}, \rho_{2} = \frac{1}{3}, \mu_{1} = 0, \mu_{2} = 3, \sigma_{1}^{2} = 1, \sigma_{2}^{2} = \frac{1}{9}$. We use a bandwidth of 0.1.
+where $\rho_{1} = \frac{3}{4}, \rho_{2} = \frac{1}{4}, \mu_{1} = 0, \mu_{2} = \frac{3}{2}, \sigma_{1}^{2} = 1, \sigma_{2}^{2} = \frac{1}{9}$. We use a bandwidth of 0.08 this time. The results are show in Figure \ref{MoG}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.15]{spectralKDEMoG.png}
+\caption{Kernel Density Estimator for Mixture of Gaussians}
+\label{MoG}
+\end{figure}
+
+As shown, the estimator captures the bimodal nature of the dnesity $f$ in a fairly satisfactory manner.
+
+\subsection{Comte}
+
+We provide a different approach to tackling the problem of density estimation. Rather than looking at the characteristic function of the Poisson random sum $X$, we can, as shown by Duval, analytically provide an expression for the density of $X$ as being a sum of convolutions of the density $f$.
+
+In particular, we see that given $N > 0$, the conditional density $g$ of $X | N > 0$ is given by
+
+\begin{equation}
+g(\cdot) = \sum_{m = 1}^{\infty}{a_m(\lambda \Delta) f^{\ast m}(\cdot)}
+\end{equation}
+
+We also see from (\ref{R-N duval}) that null increments provide no information on the density $f$. For fixed intensity $\lambda$ and $\Delta$, we see that the density $g$ depends only on $f$ so we can write $P(f) := g$. Therefore, if we can invert $P$ via some operator $P^{-1}$ to obtain $f = P^{-1}(g)$ then, given an estimator of $g$ we get a plug-in estimator for $f$. Amazingly, the operator $P$ can explicitly be inverted, provided $\lambda \Delta < \log 2$.
+
+\begin{prop}
+Provided that $\lambda \Delta < \log 2$, the inverse operator $P^{-1}$ of $P$ is well-defined and
+
+\begin{equation}
+f(\cdot) = P^{-1}(g)(\cdot) = \sum_{m=1}^{\infty}{\frac{(-1)^{m+1}}{m}\frac{(e^{\lambda \Delta} - 1)^m}{\lambda \Delta} g^{\ast m}(\cdot)}
+\end{equation}
+\end{prop}
+
+\begin{proof}
+Let $\mathcal{F}[f]$ denote the Fourier transform of $f$ and set $g := P[f]$. We note that $\mathcal{F} : L^{1}(\mathbb{R}) \to C_{0}(\mathbb{R})$ is injective. This is because, for $f \in L^{1}(\mathbb{R})$ such that $\mathcal{F}(f) = 0$, we have that $\mathcal{F}(f)$ is in $L^{1}(\mathbb{R})$ since it is the zero function. Therefore, its Fourier inverse exisits and so
+\[
+f = \mathcal{F}^{-1}(\mathcal{F}(f)) = \mathcal{F}^{-1}(0) = 0. 
+\]
+thus showing that $\mathcal{F}$ is injective on the space of Lebesgue-integrable functions, which is where our densities live.
+
+The linearity of the Fourier transform and the relation $\mathcal{F}[f \ast g] = \mathcal{F}[f]\mathcal{F}[h]$ by the Convolution Theorem gives us that
+\begin{align*}
+\mathcal{F}[h] = \mathcal{F}\left[ P(f) \right] &= \frac{1}{e^{\lambda \Delta} - 1}\sum_{m=1}^{\infty}{\frac{(\lambda \Delta)^m}{m!} (\mathcal{F}[f])^m} \\
+&= \frac{\exp\left(\lambda \Delta \mathcal{F}[f]\right) - 1}{e^{\lambda \Delta} - 1}
+\end{align*}
+
+Rearranging, we get that
+\[
+\exp\left(\lambda \Delta \mathcal{F}[f] \right) = 1 + (e^{\lambda \Delta} - 1) \mathcal{F}[h]
+\]
+
+Note that $\left\Vert (e^{\lambda \Delta} - 1)\mathcal{F}[h] \right\Vert_{\infty} < \left\Vert e^{\lambda \Delta} - 1 \right\Vert_{\infty} < 1$ for $\lambda \Delta < \log 2$. Therefore, the distinguished logarithm defined in the previous section reduces to the principal branch of the logarithm. Thus, we get that
+\begin{equation} \label{inverse}
+\mathcal{F}[f] = \frac{\log(1 + (e^{\lambda \Delta} - 1)\mathcal{F}[h])}{\lambda \Delta} = \sum_{m=1}^{\infty}{\frac{(-1)^{m+1}}{m}\frac{(e^{\lambda \Delta} - 1)^m}{\lambda \Delta} {\mathcal{F}[h]}^{m}}
+\end{equation}
+by the Taylor expansion of the logarithm, using the fact that $\lambda \Delta < \log 2$ implies that $\left\Vert (e^{\lambda \Delta} - 1)\mathcal{F}[h] \right\Vert_{\infty} < 1$.
+
+Applying the inverse Fourier transform, since $f \in L^{1}(\mathbb{R})$, gives the result. 
+\end{proof}
+
+Note that for $\lambda \Delta < \log 2$, we have that the terms in the sum are pushed closer to 0 as $m$ gets larger. Therefore, it seems appropriate to consider a truncation of the series by keeping the first $K+1$ terms, where $K$ is sufficiently large, to give an approximation of $f$:
+\begin{equation}
+f(\cdot) \approx \sum_{m=1}^{K+1}{\frac{(-1)^{m+1}}{m}\frac{(e^{\lambda \Delta} - 1)^m}{\lambda \Delta} g^{\ast m}(\cdot)}
+\end{equation}
+
+In the paper of Chesneau, an estimator of the convolution power $g^{\ast m}$, given $n$ samples from the distribution that corresponds to density $g$.
+We logically build the estimator and show its robustness on various simulations.
+
+\subsubsection{Convolution Estimator}
+
+Consider the kernel estimator for $g$ again:
+\[
+\hat{g}_{nh}(x) = \frac{1}{nh}\sum_{i=1}^{n}{K\left(\frac{x - Z_i}{h}\right)}
+\] 
+
+We take the kernel $K$ to be the sinus cardinal kernel, i.e.,
+\[
+K(x) = \frac{\sin(\pi x)}{\pi x}
+\]
+
+It is easy to compute that the characteristic function of this kernel is given by $\mathbbm{1}_{[-\pi, \pi]}(t)$. See Appendix.
+
+Then a natural plug-in estimator for the characteristic function $\phi_{g}$ is $\phi_{\hat{g}_{nh}}$ and
+
+\begin{equation}
+\phi_{\hat{g}_{nh}}(t) = \int_{\infty}^{\infty}{\hat{g}_{nh}(x) e^{ixt} dx} = \phi_{\text{emp}}(t) \mathbbm{1}_{\left[-\frac{\pi}{h}, \frac{\pi}{h}\right]}(t)
+\end{equation}
+by (\ref{charformula}).
+
+For i.i.d random variables $X_1, \dotsc, X_m$ with density $g$, we know that $X_1 + \dotsb + X_m$ has density $g^{\ast m}$ and $\phi_{g^{\ast m}}(t) = (\phi_{g}(t))^m$. Therefore, by Fourier inversion
+
+\begin{equation}
+g^{\ast m}(x) = \frac{1}{2\pi}\int_{\infty}^{\infty}{\phi_{g^{\ast m}}(t) e^{-itx} dt} = \frac{1}{2\pi}\int_{\infty}^{\infty}{(\phi_{g}(t))^m e^{-itx} dt}
+\end{equation}
+
+Therefore, our plug-in estimator for $g^{\ast m}$ is $\hat{g}_{nh}^{(m)}$ given by
+\begin{align*}
+\hat{g}_{nh}^{(m)}(x) &= \frac{1}{2\pi}\int_{\infty}^{\infty}{\left(\phi_{\text{emp}}(t) \mathbbm{1}_{\left[-\frac{\pi}{h}, \frac{\pi}{h}\right]}(t)\right)^{m} e^{-itx} dt} \\
+&= \frac{1}{2\pi}\int_{-\frac{\pi}{h}}^{\frac{\pi}{h}}{\left(\phi_{\text{emp}}(t)\right)^{m} e^{-itx} dt}
+\end{align*}
+
+Therefore, we immediately get an estimator for $f$ given by
+\begin{equation}
+\hat{f}_{nh}(x) = \sum_{m=1}^{K+1}{\frac{(-1)^{m+1}}{m}\frac{(e^{\lambda \Delta} - 1)^m}{\lambda \Delta} \hat{g}_{nh}^{(m)}(x)}
+\end{equation}
+
+\subsubsection{Simulation Results}
+
+As before, we approximate $\hat{g}_{nh}^{(m)}(x)$ by the trapezoid rule and then perform the FFT to compute $\hat{g}_{nh}^{(m)}(x)$ along a grid of values.
+
+As we have done in the previous section, we rewrite $\hat{g}_{nh}^{(m)}(x) = \hat{g}_{nh}^{(m)(1)}(x) + \hat{g}_{nh}^{(m)(2)}(x)$ where
+\begin{equation}
+\hat{g}_{nh}^{(m)(1)}(x) = \frac{1}{2\pi}\int_{0}^{\frac{\pi}{h}}{\left(\phi_{\text{emp}}(t)\right)^{m} e^{-itx} dt}
+\end{equation}
+
+\begin{align*}
+\hat{g}_{nh}^{(m)(2)}(x) &= \frac{1}{2\pi}\int_{-\frac{\pi}{h}}^{0}{\left(\phi_{\text{emp}}(t)\right)^{m} e^{-itx} dt} \\
+&= \frac{1}{2\pi}\int_{0}^{\frac{\pi}{h}}{\left(\phi_{\text{emp}}(-t)\right)^{m} e^{itx} dt}
+\end{align*}
+
+We work with $\hat{g}_{nh}^{(m)(1)}$. The case for $\hat{g}_{nh}^{(m)(2)}$ is very similar. We approximate $\hat{g}_{nh}^{(m)(1)}(x)$ by taking a grid $t_j = j\eta$ for $j = 0,1,\dotsc, N-1$ where $N$ is some large power of 2 and $\eta = \frac{\pi}{(N-1)h}$.
+\begin{equation}
+\hat{g}_{nh}^{(m)(1)}(x) \approx \frac{1}{2\pi}\sum_{j=0}^{N-1}{\left(\phi_{\text{emp}}(t_j)\right)^m e^{-it_j x} \eta}
+\end{equation}
+
+We take $x_k = -\frac{N\delta}{2} + \delta k$ for $k = 0, 1, \dotsc, N-1$ and $\delta$ is some constant to be defined later. Then
+\[
+\hat{g}_{nh}^{(m)(1)}(x) \approx \frac{1}{2\pi}\sum_{j=0}^{N-1}{\left(\phi_{\text{emp}}(t_j)\right)^m e^{it_j \frac{N\delta}{2}} e^{-ijk\eta\delta} \eta}
+\]
+
+Similarly,
+\[
+\hat{g}_{nh}^{(m)(2)}(x) \approx \frac{1}{2\pi}\sum_{j=0}^{N-1}{\left(\phi_{\text{emp}}(-t_j)\right)^m e^{-it_j \frac{N\delta}{2}} e^{ijk\eta\delta} \eta}
+\]
+
+We choose $\delta = \frac{2h(N-1)}{N}$ so that $\eta\delta = \frac{2\pi}{N}$ and then apply FFT (or IFFT) to these terms to obtain an estimate for $\hat{g}_{nh}^{(m)}$.
 
 \section{Bayesian Approach}
 
@@ -731,12 +946,17 @@ since $Y_1 + \dotsb + Y_n$ has a density. Therefore, the first statement follows
 \end{align*}
 \end{proof}
 
-\begin{lem}
+\begin{lem} \label{conv}
 Let $X$ and $Y$ be two independent random variables with density
 functions $f_{X}$ and $f_{Y}$. Then the sum $Z = X + Y$ is a random variable with density function $f_{Z}$, where $f_Z$ is the convolution of $f_X$ and $f_Y$. 
 \end{lem}
 
 \subsubsection{Algorithms for drawing from the posterior}
+
+Note: we must assume our mixture of densities has $mu_1 \geq mu_2 \geq \dotsb \mu_J$ for it to be identifiable. Then we can consider the following re-parametrization:
+\[
+\mu_r = \mu_1 \eta_2 \dotsc \eta_r, \text{ where } 0 < \eta_j \leq 1, \text{ for } r, j = 2, \dotsc, J
+\]
 
 We now discuss how to draw  from the distribution of $f$, conditional on $\mathcal{Z}_{n}^{\Delta}$. As before, we assume observations at equidistant times $0, \Delta, 2\Delta, \dotsc, n\Delta$.  We set $Z_i = X_{i\Delta} - X_{(i-1)\Delta}$ and $Z = (Z_1, \dotsc, Z_n)$. We also assume for simplicity that $\lambda$ is known and fixed.
 
@@ -829,8 +1049,8 @@ with positive hyper-parameters $(\alpha, \beta, \kappa, \xi)$ fixed.
 
 We want to find $p(a, \theta | Z)$. We do this using 
 \begin{align*}
-p(\theta, a | Z) &= p(a | \theta, Z)p(\theta | Z) \\
-&\propto p(a | \theta, Z)p(Z | \theta)p(\theta)
+p(\theta, a | Z) &\propto p(Z | \theta, a)p(\theta, a) \\
+&= p(Z | \theta, a)p(a | \theta)p(\theta)
 \end{align*}
 
 There are two clear steps for sampling for the required distribution. Therefore, we write our observation as a hierarchical model:
@@ -896,8 +1116,8 @@ We update the parameters directly using the following Lemma.
 Conditional on $a$, we have that $\psi_1, \dotsc, \psi_J$ are independent and the following holds:
 \[
 \begin{array}{r c l}
-\psi_j | a & \overset{\text{ind}}{\sim} & \mathcal{G}(\alpha_0 + s_j, \beta_0 + n\Delta) \\
-\tau | z, a & \sim & \mathcal{G}(\alpha_1 + (n+J)/2, \beta_1 + (R - q^T P^{-1} q)/2) \\
+\psi_j | a & \overset{\text{ind}}{\sim} & \mathcal{G}(\alpha_0 + s_j, \beta_0 + T) \\
+\tau | z, a & \sim & \mathcal{G}(\alpha_1 + n/2, \beta_1 + (R - q^T P^{-1} q)/2) \\
 \mu | \tau, z, a & \sim & \mathcal{N}(P^{-1} q, \tau^{-1} P^{-1})
 \end{array}
 \]
@@ -920,8 +1140,7 @@ Note that adding $\kappa I_{J \times J}$ ensures the invertibility of $P$.
 
 \begin{proof}
 \begin{align*}
-p(\psi | \mu, \tau, z, a) &= p(\psi | a) \\
-&\propto p(a | \psi)\pi(\psi) \\
+p(\psi | a) &\propto p(a | \psi)\pi(\psi) \\
 &= \prod_{j=1}^{J}{\pi(\psi_j)\left(\prod_{i}{p(n_{ij} | \psi)}\right)} \\
 &\propto \prod_{j=1}^{J}{\pi(\psi_j)\left(\prod_{i}{e^{-\psi_j\Delta}(\psi_j\Delta)^{n_{ij}}}\right)} \\
 &= \prod_{j=1}^{J}{\pi(\psi_j)e^{-\psi_j n\Delta}(\psi_j\Delta)^{s_{j}}} \\
@@ -931,7 +1150,7 @@ p(\psi | \mu, \tau, z, a) &= p(\psi | a) \\
 giving the required $\mathcal{G}(s_j + \alpha_0, \beta_0 + n \Delta)$ distribution.
 For $(\mu, \tau)$ we get
 \begin{align*}
-p(\mu, \tau | z, a) &\propto p(z |a, \mu, \tau)p(\mu, \tau | a) \\
+p(\mu, \tau | z, a) &\propto p(z, a | \mu, \tau)p(\mu, \tau) \\
 &= p(z | a, \mu, \tau)\pi(\mu | \tau)\pi(\tau) \\
 &\propto \left(\prod_{i=1}^{n}{\phi(z_i; a_{i}^{T} \mu, n_i/\tau)}\right)\left(\tau^{\alpha_1 - 1}e^{-\beta_1 \tau}\right) \left(\tau^{J/2} \exp{\left\lbrace -\frac{\tau\kappa}{2} \sum_{j=1}^{J}{(\mu_j - \xi_j)^2}\right\rbrace}\right) \\
 &\propto \tau^{\alpha_1 - 1 + (n + J)/2}\exp{\left(-\beta_1\tau - \frac{D(\mu)}{2}\tau\right)}
@@ -943,9 +1162,9 @@ D(\mu) &= \kappa\sum_{j=1}^{J}{(\mu_j - \xi_j)^2} + \sum_{i=1}^{n}{n_{i}^{-1}(z_
 \end{align*}
 by easy calculation. Note that, by completing the square,
 \[
-\mu^{T} P \mu - 2 q^T \mu = (\mu - P^{-1} q)^{T} P (\mu - P^{-1}q) + q^{T} P^{-1} q
+\mu^{T} P \mu - 2 q^T \mu = (\mu - P^{-1} q)^{T} P (\mu - P^{-1}q) - q^{T} P^{-1} q
 \]
-It follows by this that $\mu | \tau, z, a \sim  \mathcal{N}(P^{-1} q, \tau^{-1} P^{-1}) $ Also,
+It follows by this that $\mu | \tau, z, a \sim  \mathcal{N}(P^{-1} q, \tau^{-1} P^{-1}) $ Also, (need to fix this)
 \begin{equation}
 \int{\exp(-\frac{\tau}{2}D(\mu))d\mu} \propto e^{-\frac{\tau R}{2}}\int{\exp\left(-\frac{\tau}{2}(\mu - P^{-1} q)^{T} P (\mu - P^{-1}q)\right)d\mu}
 \end{equation}
@@ -955,6 +1174,8 @@ p(\tau | z, a) &= \int{p(\tau, \mu | z, a)d\mu} \\
 &\propto \tau^{ \alpha_1 - 1 + (n + J)/2}\exp(-\beta_1 \tau)e^{-\tau R/2}(2\pi)^{J/2}\sqrt{|\tau^{-1}P^{-1}}\exp\left(\frac{1}{2}\tau q^T P^{-1} q \right)  \\
 &\propto \tau^{\alpha_1 + (n+J)/2 - 1}\exp{\left\lbrace -\tau\left(\beta_1 + \frac{1}{2}(R - q^T P^{-1} q)\right) \right\rbrace} 
 \end{align*}
-giving that $\tau | z, a  \sim  \mathcal{G}(\alpha_1 + (n+J)/2, \beta_1 + (R - q^T P^{-1} q)/2)$
+giving that $\tau | z, a  \sim  \mathcal{G}(\alpha_1 + n/2, \beta_1 + (R - q^T P^{-1} q)/2)$
 \end{proof}
+
+\bibliography{Biblio}
 \end{document}
