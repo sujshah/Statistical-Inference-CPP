@@ -6,9 +6,9 @@ Created on Sat Apr  6 17:28:30 2019
 """
 
 import matplotlib.pyplot as plt
-from spectralconv import SpectralConv
-from simulation import CPPSimulation
-from distributions import Gaussian
+from utils.spectralconv import SpectralConv
+from utils.simulation import CPPSimulation
+from utils.distributions import Gaussian
 
 cpp = CPPSimulation(rate=0.3, distribution=Gaussian())
 jumps = cpp.observe_jumps(0.4, n_obs=5000)

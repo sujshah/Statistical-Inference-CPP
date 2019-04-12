@@ -4,7 +4,7 @@ Created on Mon Mar 25 19:42:29 2019
 @author: sujshah
 """
 import numpy as np
-from charfunctions import char_emp
+from utils.charfunctions import char_emp
 
 class SpectralKDE:
     """

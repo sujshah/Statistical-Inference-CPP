@@ -4,7 +4,7 @@ Created on Wed Mar 27 13:29:16 2019
 @author: sujshah
 """
 import numpy as np
-from charfunctions import char_emp
+from utils.charfunctions import char_emp
 
 class SpectralConv:
     """
