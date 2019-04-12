@@ -44,7 +44,7 @@ class SpectralConv:
         psi1 = ((char_emp(jumps, steps*self.eta)**m)*
                 np.exp(1j*steps*np.pi))*self.eta
         psi2 = ((char_emp(jumps, -steps*self.eta)**m)*
-                np.exp(-1j*steps*np.pi))*self.eta)
+                np.exp(-1j*steps*np.pi))*self.eta
         
         f1 = np.fft.fft(psi1)/(2*np.pi)
         f2 = self.N*np.fft.ifft(psi2)/(2*np.pi)
@@ -68,7 +68,7 @@ class SpectralConv:
         coeffs = (((-1)**(index + 1))*((np.exp(rate*separation) - 1)**index)/
                   (index*rate*separation))
         
-        return np.sum(coeffs*convs, axis=0)        
+        return np.sum(convs*coeffs[:, np.newaxis], axis=0)        
         
     def compute_x(self):
         """

@@ -7,7 +7,7 @@ import numpy as np
 from distributions import Gaussian, ZeroTruncatedPoission
 from time import sleep
 
-class BayesianMoG:
+class BayesianDPP:
     """
     Implements the Bayesian approach of density estimation of a mixture of
     Gaussians of fixed size using a data augmentation scheme.
@@ -29,13 +29,18 @@ class BayesianMoG:
         """
         
         self.n_components = n_components
+        self.active_components = [True for _ in range(self.n_components)]
         self.n_iterations = n_iterations
         self.burn_in = burn_in
         self.acceptance_rate = 0.
         
+        self.alpha = np.zeros(self.n_iterations)
+        self.betas = np.zeros((self.n_iterations, self.n_components))
         self.mixing_coeffs = np.zeros((self.n_iterations, self.n_components))
         self.means = np.zeros((self.n_iterations, self.n_components))
         self.precision = np.zeros(self.n_iterations)
+        
+        self.metropolis = None
         
         self.jumps = jumps
         self.n_segments = self.jumps.size
@@ -63,6 +68,7 @@ class BayesianMoG:
         
         print(f'Performing MCMC with {self.n_iterations} steps.')
         print('Initial parameter values are:')
+        print(f'Hyperprior Alpha: {self.alpha[0]}')
         print(f'Mixing Coeffs: {self.mixing_coeffs[0, :]}')
         print(f'Means: {self.means[0, :]}')
         print(f'Precision: {self.precision[0]}')
@@ -70,25 +76,38 @@ class BayesianMoG:
         
         for it in range(1, self.n_iterations):
             accept_count += self.update_segments(it)
+            self.update_mixing_coeffs(it)
             self.update_parameters(it)
             self.acceptance_rate = accept_count/it
             
             print(f'Iteration {it}:')
+            print(f'Hyperprior Alpha: {self.alpha[it]}')
             print(f'Mixing Coeffs: {self.mixing_coeffs[it, :]}')
             print(f'Means: {self.means[it, :]}')
             print(f'Precision: {self.precision[it]}')
             print(f'Acceptance Rate: {self.acceptance_rate}%')
         
         print('MCMC has completed.')
-        
+    
+    def compute_stick_breaking_weights(self, betas):
+        log_betas = np.log(betas)
+        log_betas[1:] = log_betas[1:] + np.cumsum(np.log(1 - betas[:-1]))
+        return np.exp(log_betas)
+
     def initialise_parameters(self):
         """
         Initialises the parameter values using the hyperparameters.
         """
+        #self.alpha[0] = np.random.gamma(1, 1)
+        self.alpha[0] = 1
         
-        self.mixing_coeffs[0] = np.random.gamma(
-                self.hyparam['mix_shape'], 
-                1.0/self.hyparam['mix_rate'])
+        self.betas[0] = np.random.beta(1, self.alpha[0], size=self.n_components)
+        natural_log_one_minus_beta = np.log(1- self.betas[0])
+        cum_log = np.insert(np.cumsum(natural_log_one_minus_beta[:-1]), 0, 0)
+        inside_exp = np.dot(self.betas[0], np.exp(cum_log))
+        self.metropolis = np.exp(inside_exp)
+        
+        self.mixing_coeffs[0] = self.compute_stick_breaking_weights(self.betas[0])
         
         self.precision[0] = np.random.gamma(
                 self.hyparam['precision_shape'], 
@@ -122,6 +141,35 @@ class BayesianMoG:
         
         return Q, P, R
     
+    def update_mixing_coeffs(self, it):
+        component_sums = np.sum(self.auxiliary, axis=0)
+        
+        proposal_betas = np.empty(self.n_components)
+        for i in range(self.n_components):
+            a = component_sums[i] + 1
+            b = self.alpha[it-1] + np.sum(component_sums[i+1:])
+            if b <= 0:
+                proposal_betas[i] = 1
+            else:
+                proposal_betas[i] = np.random.beta(a, b)
+        
+        natural_log_one_minus_beta = np.log(1- proposal_betas)
+        cum_log = np.insert(np.cumsum(natural_log_one_minus_beta[:-1]), 0, 0)
+        inside_exp = np.dot(proposal_betas, np.exp(cum_log))
+        proposal_top = np.exp(inside_exp)
+        
+        if np.random.rand() < proposal_top/self.metropolis:
+            self.metropolis = proposal_top
+            self.betas[it] = proposal_betas
+            self.mixing_coeffs[it] = self.compute_stick_breaking_weights(self.betas[it])
+            #self.alpha[it] = np.random.gamma(1, 1.0/(1 - np.sum(natural_log_one_minus_beta)))
+            self.alpha[it] = 1
+        else:
+            self.betas[it] = self.betas[it-1]
+            self.mixing_coeffs[it] = self.mixing_coeffs[it-1]
+            self.alpha[it] = self.alpha[it-1]
+        
+    
     def update_parameters(self, it):
         """
         Samples the parameter values condiitonal on the auxiliary variable
@@ -134,9 +182,12 @@ class BayesianMoG:
         Q, P, R = self.computeQPR(segment_sums)
         invP = np.linalg.inv(P)
         
-        self.mixing_coeffs[it] = np.random.gamma(
-                self.hyparam['mix_shape'] + component_sums, 
-                1.0/(self.hyparam['mix_rate'] + self.T))
+        
+        """
+        for i in range(self.n_components):
+            if not self.active_components[i]:
+                self.mixing_coeffs[it, i] = 0.
+        """
         
         self.precision[it] = np.random.gamma(
                 self.hyparam['precision_shape'] + self.n_segments/2,
@@ -179,3 +230,18 @@ class BayesianMoG:
                 self.auxiliary[seg] = prop_components
         
         return accept_count/self.n_segments
+    
+    def heuristic_merge(self, it):
+        mean_of_means = np.mean(self.means[it-1000:it], axis=0)
+        for i in range(len(mean_of_means)-1):
+            for j in range(i+1, len(mean_of_means)):
+                if np.abs(mean_of_means[i] - mean_of_means[j]) < 0.2:
+                    self.active_components[j] = False
+                    self.mixing_coeffs[it-1, i] += self.mixing_coeffs[it-1, j]
+                    self.mixing_coeffs[it-1, j] = 0
+                    self.auxiliary[:, i] += self.auxiliary[:, j]
+                    self.auxiliary[:, j] = np.zeros(self.n_segments)
+                    
+                    
+            
+            
