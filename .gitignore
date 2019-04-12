@@ -1,3 +1,8 @@
 latex/
 vdv/
 *.pdf
+*.jl
+utils/.ipync_checkpoints
+utils/__pycache__
+utils/crp.py
+utils/dirichletprocess.py
