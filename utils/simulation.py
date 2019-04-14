@@ -100,12 +100,3 @@ class CPPSimulation:
         if n_obs is not None:
             return non_zero_jumps[:min(n_obs, non_zero_jumps.size)] 
         return non_zero_jumps
-        
-        
-        
-        
-        
-
-
-    
-    

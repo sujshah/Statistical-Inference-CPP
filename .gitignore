@@ -1,6 +1,7 @@
 latex/
 vdv/
 *.pdf
+!EssayFirstDraft.pdf
 *.jl
 utils/.ipync_checkpoints
 utils/__pycache__
