@@ -7,14 +7,14 @@ import numpy as np
 from distributions import Gaussian, ZeroTruncatedPoission
 from time import sleep
 
-class BayesianDPP:
+class BayesianDP:
     """
     Implements the Bayesian approach of density estimation of a mixture of
     Gaussians of fixed size using a data augmentation scheme.
     """
     
-    def __init__(self, n_components, n_iterations, jumps, T, delta,
-                 burn_in=5000, hyperparameters=None):
+    def __init__(self, n_components, n_iterations, jumps, T, delta, rate,
+                 burn_in=5000, store_freq=1, hyperparameters=None):
         """
         Initialises the tuning parameters of the MCMC algorithm and the 
         non-zero jump observations needed for drawing from the posterior.
@@ -23,7 +23,9 @@ class BayesianDPP:
         :param jumps: the non-zero jump observations of the CPP.
         :param T: the time up to which we observe the CPP.
         :param delta: the separation time between the observations.
+        :param rate: the intensity of the CPP.
         :param burn_in: MCMC burn in.
+        :param store_freq: the frequency at which we store iterations.
         :param hyperparameters: hyperparameters for our parameters we want to
                                  obtain inference on.
         """
@@ -32,12 +34,15 @@ class BayesianDPP:
         self.active_components = [True for _ in range(self.n_components)]
         self.n_iterations = n_iterations
         self.burn_in = burn_in
+        self.store_freq = store_freq
         self.acceptance_rate = 0.
         
-        self.alpha = np.zeros(self.n_iterations)
-        self.betas = np.zeros((self.n_iterations, self.n_components))
-        self.mixing_coeffs = np.zeros((self.n_iterations, self.n_components))
-        self.means = np.zeros((self.n_iterations, self.n_components))
+        self.betas = np.zeros(self.n_components)
+        self.mixing_coeffs = np.zeros((self.n_iterations//self.store_freq,
+                                       self.n_components))
+        
+        self.means = np.zeros((self.n_iterations//self.store_freq,
+                               self.n_components))
         self.precision = np.zeros(self.n_iterations)
         
         self.metropolis = None
@@ -47,31 +52,33 @@ class BayesianDPP:
         self.auxiliary = np.ones((self.n_segments, self.n_components))
         self.T = T
         self.delta = delta
+        self.rate = rate
         
         if hyperparameters is None:
-            hyperparameters = {'mix_shape' : np.ones(self.n_components),
-                               'mix_rate' : 1,
+            hyperparameters = {'beta_shape' : 1,
                                'precision_shape' : 1,
                                'precision_rate' : 1,
                                'means_loc' : np.zeros(self.n_components),
                                'means_scale' : 1}
         
         self.hyparam = hyperparameters
+        self.currentmixing_coeffs = np.zeros(self.n_components)
+        self.currentmeans = np.zeros(self.n_components)
+        self.currentprecision = np.zeros(1)
     
     def performMCMC(self):
         """
         Performs the MCMC algorithm to sample from the posterior.
         """
-        
+        self.initialise_mixing_coeffs()
         self.initialise_parameters()
         accept_count = 0
         
         print(f'Performing MCMC with {self.n_iterations} steps.')
         print('Initial parameter values are:')
-        print(f'Hyperprior Alpha: {self.alpha[0]}')
-        print(f'Mixing Coeffs: {self.mixing_coeffs[0, :]}')
+        print(f'Mixing Coeffs: {self.mixing_coeffs[0]}')
         print(f'Means: {self.means[0, :]}')
-        print(f'Precision: {self.precision[0]}')
+        print(f'Precision: {self.precision[0]:.3f}')
         sleep(4)
         
         for it in range(1, self.n_iterations):
@@ -80,12 +87,16 @@ class BayesianDPP:
             self.update_parameters(it)
             self.acceptance_rate = accept_count/it
             
+            if it % self.store_freq == 0:
+                self.mixing_coeffs[it] = self.currentmixing_coeffs
+                self.means[it] = self.currentmeans
+                self.precision[it] = self.currentprecision
+            
             print(f'Iteration {it}:')
-            print(f'Hyperprior Alpha: {self.alpha[it]}')
-            print(f'Mixing Coeffs: {self.mixing_coeffs[it, :]}')
-            print(f'Means: {self.means[it, :]}')
-            print(f'Precision: {self.precision[it]}')
-            print(f'Acceptance Rate: {self.acceptance_rate}%')
+            print(f'Mixing Coeffs: {self.currentmixing_coeffs}')
+            print(f'Means: {self.currentmeans}')
+            print(f'Precision: {self.currentprecision:.3f}')
+            print(f'Acceptance Rate: {self.acceptance_rate:.3f}%')
         
         print('MCMC has completed.')
     
@@ -94,20 +105,32 @@ class BayesianDPP:
         log_betas[1:] = log_betas[1:] + np.cumsum(np.log(1 - betas[:-1]))
         return np.exp(log_betas)
 
+    def initialise_mixing_coeffs(self):
+        """
+        Initialises the betas and computes the mixing coefficients using 
+        stick breaking.
+        """
+        
+        self.betas = np.random.beta(1, 
+                                     self.hyparam['beta_shape'], 
+                                     size=self.n_components)
+        self.mixing_coeffs[0] = self.compute_stick_breaking_weights(
+                self.betas)
+        
+        self.currentmixing_coeffs = self.mixing_coeffs[0]
+        
+        #compute metropolis-hastings proposal
+        log_helper = np.insert(
+                np.cumsum(np.log(1 - self.betas)[:-1]), 0,0)
+        inside_exp = np.dot(self.betas,
+                            np.exp(log_helper))
+        self.metropolis = inside_exp
+        
+        
     def initialise_parameters(self):
         """
-        Initialises the parameter values using the hyperparameters.
+        Initialises the parameter values of mu, tau using the hyperparameters.
         """
-        #self.alpha[0] = np.random.gamma(1, 1)
-        self.alpha[0] = 1
-        
-        self.betas[0] = np.random.beta(1, self.alpha[0], size=self.n_components)
-        natural_log_one_minus_beta = np.log(1- self.betas[0])
-        cum_log = np.insert(np.cumsum(natural_log_one_minus_beta[:-1]), 0, 0)
-        inside_exp = np.dot(self.betas[0], np.exp(cum_log))
-        self.metropolis = np.exp(inside_exp)
-        
-        self.mixing_coeffs[0] = self.compute_stick_breaking_weights(self.betas[0])
         
         self.precision[0] = np.random.gamma(
                 self.hyparam['precision_shape'], 
@@ -116,6 +139,9 @@ class BayesianDPP:
         self.means[0] = np.random.normal(
                 self.hyparam['means_loc'],
                 np.sqrt(1.0/(self.precision[0]*self.hyparam['means_scale'])))
+
+        self.currentmeans = self.means[0]
+        self.currentprecision = self.precision[0]
     
     def computeQPR(self, segment_sums):
         """
@@ -142,33 +168,47 @@ class BayesianDPP:
         return Q, P, R
     
     def update_mixing_coeffs(self, it):
+        """
+        Samples beta using Metropolis-Hastings step conditional on the 
+        updated auxiliary components.
+        :param it: the MCMC iteration number.
+        """
         component_sums = np.sum(self.auxiliary, axis=0)
         
         proposal_betas = np.empty(self.n_components)
         for i in range(self.n_components):
             a = component_sums[i] + 1
-            b = self.alpha[it-1] + np.sum(component_sums[i+1:])
-            if b <= 0:
-                proposal_betas[i] = 1
-            else:
-                proposal_betas[i] = np.random.beta(a, b)
+            b = self.hyparam['beta_shape'] + np.sum(component_sums[i+1:])
+            proposal_betas[i] = np.random.beta(a, b)
+            
+            log_helper = np.log(1 - self.betas)
+            sumlog = np.sum(log_helper[:i])
+            proposal_top = (-self.n_segments*self.rate*self.delta*
+                                  proposal_betas[i]*np.exp(sumlog))
+            proposal_bottom = (-self.n_segments*self.rate*self.delta*
+                               self.betas[i]*np.exp(sumlog))
+            if np.random.rand() < np.exp(proposal_top - proposal_bottom):
+                self.betas[i] = proposal_betas[i]
+                print(proposal_top)
+                print(proposal_bottom)
         
-        natural_log_one_minus_beta = np.log(1- proposal_betas)
-        cum_log = np.insert(np.cumsum(natural_log_one_minus_beta[:-1]), 0, 0)
-        inside_exp = np.dot(proposal_betas, np.exp(cum_log))
-        proposal_top = np.exp(inside_exp)
+        self.currentmixing_coeffs = self.compute_stick_breaking_weights(
+                self.betas)
         
-        if np.random.rand() < proposal_top/self.metropolis:
-            self.metropolis = proposal_top
-            self.betas[it] = proposal_betas
-            self.mixing_coeffs[it] = self.compute_stick_breaking_weights(self.betas[it])
-            #self.alpha[it] = np.random.gamma(1, 1.0/(1 - np.sum(natural_log_one_minus_beta)))
-            self.alpha[it] = 1
-        else:
-            self.betas[it] = self.betas[it-1]
-            self.mixing_coeffs[it] = self.mixing_coeffs[it-1]
-            self.alpha[it] = self.alpha[it-1]
+        """
+        #compute metropolis-hastings proposal
+        log_helper = np.insert(
+                np.cumsum(np.log(1 - proposal_betas)[:-1]), 0,0)
+        inside_exp = np.dot(proposal_betas,
+                            np.exp(log_helper))
+        proposal = inside_exp
         
+        if np.random.rand() < np.exp(proposal - self.metropolis):
+            self.metropolis = proposal
+            self.betas = proposal_betas
+            self.currentmixing_coeffs = self.compute_stick_breaking_weights(
+                    self.betas)
+        """
     
     def update_parameters(self, it):
         """
@@ -177,7 +217,6 @@ class BayesianDPP:
         :param it: the MCMC iteration number.
         """
         
-        component_sums = np.sum(self.auxiliary, axis=0)
         segment_sums = np.sum(self.auxiliary, axis=1)  
         Q, P, R = self.computeQPR(segment_sums)
         invP = np.linalg.inv(P)
@@ -189,13 +228,13 @@ class BayesianDPP:
                 self.mixing_coeffs[it, i] = 0.
         """
         
-        self.precision[it] = np.random.gamma(
+        self.currentprecision = np.random.gamma(
                 self.hyparam['precision_shape'] + self.n_segments/2,
                 1.0/(self.hyparam['precision_rate'] + 
                      (R - np.dot(Q, np.matmul(invP, Q)))/2.0))
         
-        self.means[it] = np.random.multivariate_normal(np.matmul(invP, Q),
-                  invP/self.precision[it])
+        self.currentmeans = np.random.multivariate_normal(np.matmul(invP, Q),
+                  invP/self.currentprecision)
 
     def update_segments(self, it):
         """
@@ -206,23 +245,21 @@ class BayesianDPP:
         """
         
         accept_count = 0
-        zerotrun_pois = (ZeroTruncatedPoission(
-                rate=np.sum(self.mixing_coeffs[it-1])*self.delta)
-            .sample(self.n_segments))
+        zerotrun_pois = (ZeroTruncatedPoission(rate=np.sum(self.currentmixing_coeffs)
+        *self.delta).sample(self.n_segments))
         
         for seg in range(self.n_segments):
             prop = zerotrun_pois[seg]
-            prop_components = np.random.multinomial(
-                prop, 
-                self.mixing_coeffs[it-1]/np.sum(self.mixing_coeffs[it-1]))
+            prop_components = np.random.multinomial(prop, 
+                self.currentmixing_coeffs/np.sum(self.currentmixing_coeffs))
             
             accept_top = Gaussian(
-                    np.dot(prop_components, self.means[it-1]), 
-                    prop/self.precision[it-1]).pdf(self.jumps[seg])
+                    np.dot(prop_components, self.currentmeans), 
+                    prop/self.currentprecision).pdf(self.jumps[seg])
             
             accept_bot = Gaussian(
-                    np.dot(self.auxiliary[seg], self.means[it-1]),
-                    np.sum(self.auxiliary[seg])/self.precision[it-1]).pdf(
+                    np.dot(self.auxiliary[seg], self.currentmeans),
+                    np.sum(self.auxiliary[seg])/self.currentprecision).pdf(
                             self.jumps[seg])
             
             if np.random.rand() < accept_top/accept_bot:
@@ -230,17 +267,6 @@ class BayesianDPP:
                 self.auxiliary[seg] = prop_components
         
         return accept_count/self.n_segments
-    
-    def heuristic_merge(self, it):
-        mean_of_means = np.mean(self.means[it-1000:it], axis=0)
-        for i in range(len(mean_of_means)-1):
-            for j in range(i+1, len(mean_of_means)):
-                if np.abs(mean_of_means[i] - mean_of_means[j]) < 0.2:
-                    self.active_components[j] = False
-                    self.mixing_coeffs[it-1, i] += self.mixing_coeffs[it-1, j]
-                    self.mixing_coeffs[it-1, j] = 0
-                    self.auxiliary[:, i] += self.auxiliary[:, j]
-                    self.auxiliary[:, j] = np.zeros(self.n_segments)
                     
                     
             

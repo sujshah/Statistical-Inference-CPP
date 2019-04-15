@@ -14,7 +14,7 @@ class BayesianMoG:
     Gaussians of fixed size using a data augmentation scheme.
     """
     
-    def __init__(self, n_components, n_iterations, jumps, T, delta,
+    def __init__(self, n_components, n_iterations, jumps, T, delta, rate,
                  burn_in=5000, store_freq=1, hyperparameters=None):
         """
         Initialises the tuning parameters of the MCMC algorithm and the 
@@ -24,6 +24,7 @@ class BayesianMoG:
         :param jumps: the non-zero jump observations of the CPP.
         :param T: the time up to which we observe the CPP.
         :param delta: the separation time between the observations.
+        :param rate: the intensity of the CPP.
         :param burn_in: MCMC burn in.
         :param store_freq: the frequency at which we store iterations.
         :param hyperparameters: hyperparameters for our parameters we want to
@@ -47,10 +48,10 @@ class BayesianMoG:
         self.auxiliary = np.ones((self.n_segments, self.n_components))
         self.T = T
         self.delta = delta
+        self.rate = rate
         
         if hyperparameters is None:
             hyperparameters = {'mix_shape' : np.ones(self.n_components),
-                               'mix_rate' : 1,
                                'precision_shape' : 1,
                                'precision_rate' : 1,
                                'means_loc' : np.zeros(self.n_components),
@@ -100,9 +101,8 @@ class BayesianMoG:
         Initialises the parameter values using the hyperparameters.
         """
         
-        self.mixing_coeffs[0] = np.random.gamma(
-                self.hyparam['mix_shape'], 
-                1.0/self.hyparam['mix_rate'])
+        self.mixing_coeffs[0] = np.random.dirichlet(
+                self.hyparam['mix_shape'])
         
         self.precision[0] = np.random.gamma(
                 self.hyparam['precision_shape'], 
@@ -154,7 +154,7 @@ class BayesianMoG:
         
         self.currentmixing_coeffs = np.random.gamma(
                 self.hyparam['mix_shape'] + component_sums, 
-                1.0/(self.hyparam['mix_rate'] + self.T))
+                1.0/(self.rate*self.T))
         
         self.currentprecision = np.random.gamma(
                 self.hyparam['precision_shape'] + self.n_segments/2,
@@ -173,15 +173,13 @@ class BayesianMoG:
         """
         
         accept_count = 0
-        zerotrun_pois = (ZeroTruncatedPoission(
-                rate=np.sum(self.currentmixing_coeffs)*self.delta)
+        zerotrun_pois = (ZeroTruncatedPoission(rate=self.rate*self.delta)
             .sample(self.n_segments))
         
         for seg in range(self.n_segments):
             prop = zerotrun_pois[seg]
             prop_components = np.random.multinomial(
-                prop, 
-                self.currentmixing_coeffs/np.sum(self.currentmixing_coeffs))
+                prop, self.currentmixing_coeffs)
             
             accept_top = Gaussian(
                     np.dot(prop_components, self.currentmeans), 
