@@ -179,7 +179,8 @@ class BayesianMoG:
         for seg in range(self.n_segments):
             prop = zerotrun_pois[seg]
             prop_components = np.random.multinomial(
-                prop, self.currentmixing_coeffs)
+                prop,
+                self.currentmixing_coeffs/np.sum(self.currentmixing_coeffs))
             
             accept_top = Gaussian(
                     np.dot(prop_components, self.currentmeans), 

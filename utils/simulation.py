@@ -91,7 +91,7 @@ class CPPSimulation:
             raise ValueError("Expected either n_obs or T.")
         
         if n_obs is not None:
-            T = delta*n_obs*5
+            T = delta*n_obs*100
         
         observations = self.observe_cpp(delta, T)
         jumps = (observations[1:] - observations[:-1])
