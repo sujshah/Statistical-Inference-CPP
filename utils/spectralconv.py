@@ -4,7 +4,7 @@ Created on Wed Mar 27 13:29:16 2019
 @author: sujshah
 """
 import numpy as np
-from utils.charfunctions import char_emp
+from utils.charfunctions import char_emp, sinus_kernel
 
 class SpectralConv:
     """
@@ -12,7 +12,7 @@ class SpectralConv:
     of the convolutions of the density.
     """
     
-    def __init__(self, bandwidth, fourier_N, n_conv):
+    def __init__(self, bandwidth, fourier_N, n_conv, eta):
         """
         Initialises the tuning parameters for the kernel density estimation
         via convolutions.
@@ -24,8 +24,8 @@ class SpectralConv:
         
         self.h = bandwidth
         self.N = fourier_N
-        self.eta = np.pi/(self.h*(self.N - 1))
-        self.delta = 2*self.h*(self.N - 1)/self.N
+        self.eta = eta
+        self.delta = 2*np.pi/(self.eta*self.N)
         self.n_conv = n_conv
     
     def compute_convolution(self, m, jumps, rate):
@@ -42,8 +42,10 @@ class SpectralConv:
         steps = np.arange(self.N)
         
         psi1 = ((char_emp(jumps, steps*self.eta)**m)*
+                sinus_kernel(steps*self.eta*self.h)*
                 np.exp(1j*steps*np.pi))*self.eta
         psi2 = ((char_emp(jumps, -steps*self.eta)**m)*
+                sinus_kernel(steps*self.eta*self.h)*
                 np.exp(-1j*steps*np.pi))*self.eta
         
         f1 = np.fft.fft(psi1)/(2*np.pi)

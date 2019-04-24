@@ -29,3 +29,7 @@ def wand_kernel(x):
     """
     
     return np.asarray([(1-xi**2)**3 if np.abs(xi) < 1 else 0 for xi in x])
+
+def sinus_kernel(x):
+    
+    return np.asarray([1 if np.abs(xi) < np.pi else 0 for xi in x])

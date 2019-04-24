@@ -59,15 +59,24 @@ density = MixtureOfDistribution(Gaussian,
                                 params['means'],
                                 np.repeat(params['precision'], 4))
 
-params = {'legend.fontsize': 20,
+f = open("saved_MCMC2.pickle","rb")
+bin_data = f.read()
+bayesmix = pickle.loads(bin_data)
+plt.plot(np.arange(15000), bayesmix.means[:, 2:])
+plt.ylim(-5, 5)
+plt.show()
+
+
+"""
+params = {'legend.fontsize': 16,
           'legend.handlelength': 2}
 plt.rcParams.update(params)
-x = np.arange(-5, 5, 0.01)
+x = np.arange(-10, 8, 0.01)
 plt.plot(x, density.pdf(x))
 plt.xlim(-10, 8)
-plt.ylim(0, 0.5)
+plt.ylim(0, 0.15)
 plt.plot(x, mog.pdf(x))
 plt.legend(['Estimate', 'True'])
 plt.show()
-
+"""
 
